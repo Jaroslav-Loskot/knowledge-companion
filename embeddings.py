@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 import os
 
 from models import Base, Customer, CustomerAlias
-from embeddings import fetch_embedding
 
 # Load AWS credentials from .env
 load_dotenv()
