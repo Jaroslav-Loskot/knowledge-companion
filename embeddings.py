@@ -3,6 +3,7 @@ import json
 import os
 from fastapi import HTTPException
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -25,10 +26,16 @@ def fetch_embedding(text: str) -> str:
         }
         response = bedrock_client.invoke_model(
             modelId="amazon.titan-embed-text-v2:0",
-            body=json.dumps(payload)
+            body=json.dumps(payload),
+            contentType="application/json",
+            accept="application/json"
         )
         body = response['body'].read().decode()
         result = json.loads(body)
         return f"[{','.join(map(str, result.get('embedding')))}]"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
+        logging.exception("Failed to fetch embedding")
+        raise HTTPException(status_code=500, detail={
+            "error": "Embedding generation failed",
+            "exception": str(e)
+        })
