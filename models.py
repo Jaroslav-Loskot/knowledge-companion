@@ -24,5 +24,5 @@ class CustomerAlias(Base):
     id = Column(Integer, primary_key=True)
     customer_id = Column(Uuid, ForeignKey('customer.id'))
     alias = Column(Text)
-    embedding = Column("embedding", Text)  # replace Text if you later define a vector type
+    embedding = Column(Vector(1024))  # or the appropriate dimension
     customer = relationship("Customer", back_populates="aliases")
