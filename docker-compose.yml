@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  knowledge-companion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: knowledge-companion
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    env_file:
+      - .env
+    networks:
+      - supabase_default
+
+networks:
+  supabase_default:
+    external: true
