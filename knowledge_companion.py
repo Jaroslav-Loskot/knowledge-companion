@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -30,20 +30,20 @@ metadata.reflect(bind=engine)
 # --- SCHEMAS ---
 class CustomerAliasCreate(BaseModel):
     alias: str
-    embedding: Optional[str]
+    embedding: Optional[str] = None
 
 class CustomerCreate(BaseModel):
     id: Optional[UUID] = None
     name: str
-    industry: Optional[str]
-    size: Optional[str]
-    region: Optional[str]
-    status: Optional[str]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
-    jira_project_key: Optional[str]
-    salesforce_account_id: Optional[str]
-    mainpage_url: Optional[str]
+    industry: Optional[str] = None
+    size: Optional[str] = None
+    region: Optional[str] = None
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    jira_project_key: Optional[str] = None
+    salesforce_account_id: Optional[str] = None
+    mainpage_url: Optional[str] = None
     aliases: Optional[List[CustomerAliasCreate]] = []
 
 # --- FASTAPI APP ---
