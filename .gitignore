@@ -16,6 +16,7 @@ venv/
 # VS Code & IDE
 .vscode/
 .idea/
+*.code-workspace
 
 # Docker
 *.log
