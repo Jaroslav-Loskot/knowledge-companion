@@ -17,7 +17,7 @@ bedrock_client = boto3.client(
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
 
-def fetch_embedding(text: str) -> str:
+def fetch_embedding(text: str) -> list[float]:
     try:
         payload = {
             "inputText": text,
@@ -32,10 +32,7 @@ def fetch_embedding(text: str) -> str:
         )
         body = response['body'].read().decode()
         result = json.loads(body)
-        return f"[{','.join(map(str, result.get('embedding')))}]"
+        return result.get('embedding')
     except Exception as e:
-        logging.exception("Failed to fetch embedding")
-        raise HTTPException(status_code=500, detail={
-            "error": "Embedding generation failed",
-            "exception": str(e)
-        })
+        raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
+
