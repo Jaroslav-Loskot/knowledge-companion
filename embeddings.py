@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 from uuid import UUID, uuid4
 from datetime import datetime
 from sqlalchemy import create_engine, MetaData
@@ -46,8 +46,13 @@ class CustomerCreate(BaseModel):
     mainpage_url: Optional[str] = None
     aliases: Optional[List[CustomerAliasCreate]] = []
 
-class AddAliasRequest(BaseModel):
-    alias: str
+class AliasOperationRequest(BaseModel):
+    operation: Literal["add", "delete", "update"]
+    customer_id: UUID
+    aliases: List[str]
+
+class CustomerUpdateRequest(BaseModel):
+    name: Optional[str] = None
 
 # --- FASTAPI APP ---
 app = FastAPI(
@@ -89,22 +94,57 @@ def create_customer(customer: CustomerCreate):
     db.commit()
     return {"status": "created", "customer_id": str(customer_id)}
 
-@app.post("/customers/{customer_id}/aliases")
-def add_alias(customer_id: UUID, alias_data: AddAliasRequest):
+@app.post("/aliases")
+def alias_operation(payload: AliasOperationRequest):
+    db = next(get_db())
+    customer = db.query(Customer).filter(Customer.id == payload.customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    if payload.operation == "add":
+        for alias_text in payload.aliases:
+            embedding_value = fetch_embedding(alias_text)
+            db_alias = CustomerAlias(
+                customer_id=payload.customer_id,
+                alias=alias_text,
+                embedding=embedding_value
+            )
+            db.add(db_alias)
+
+    elif payload.operation == "delete":
+        db.query(CustomerAlias).filter(
+            CustomerAlias.customer_id == payload.customer_id,
+            CustomerAlias.alias.in_(payload.aliases)
+        ).delete(synchronize_session=False)
+
+    elif payload.operation == "update":
+        for alias_text in payload.aliases:
+            db_alias = db.query(CustomerAlias).filter(
+                CustomerAlias.customer_id == payload.customer_id,
+                CustomerAlias.alias == alias_text
+            ).first()
+            if db_alias:
+                db_alias.embedding = fetch_embedding(alias_text)
+
+    db.commit()
+    return {
+        "status": f"aliases {payload.operation}d",
+        "customer_id": str(payload.customer_id),
+        "aliases": payload.aliases
+    }
+
+@app.patch("/customers/{customer_id}")
+def update_customer(customer_id: UUID, update: CustomerUpdateRequest):
     db = next(get_db())
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    embedding_value = fetch_embedding(alias_data.alias)
-    db_alias = CustomerAlias(
-        customer_id=customer_id,
-        alias=alias_data.alias,
-        embedding=embedding_value
-    )
-    db.add(db_alias)
+    if update.name:
+        customer.name = update.name
+
     db.commit()
-    return {"status": "alias added", "customer_id": str(customer_id), "alias": alias_data.alias}
+    return {"status": "updated", "customer_id": str(customer.id)}
 
 @app.delete("/customers/{customer_id}")
 def delete_customer(customer_id: UUID):
