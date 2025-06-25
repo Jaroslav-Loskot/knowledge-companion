@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-companion
     ports:
-      - "8000:8000"
+      - "8010:8000"
     restart: unless-stopped
     environment:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -16,6 +16,11 @@ services:
       - .env
     networks:
       - supabase_default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 networks:
   supabase_default:
