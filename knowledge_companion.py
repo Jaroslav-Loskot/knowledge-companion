@@ -70,15 +70,18 @@ def create_customer(customer: CustomerCreate):
     db = next(get_db())
     db_customer = Customer(**customer.dict(exclude={"aliases"}))
     db.add(db_customer)
-    if customer.aliases:
-        for alias in customer.aliases:
-            embedding_value = alias.embedding or fetch_embedding(alias.alias)
-            db_alias = CustomerAlias(
-                customer_id=customer.id,
-                alias=alias.alias,
-                embedding=embedding_value
-            )
-            db.add(db_alias)
+
+    aliases = customer.aliases or [CustomerAliasCreate(alias=customer.name)]
+
+    for alias in aliases:
+        embedding_value = alias.embedding or fetch_embedding(alias.alias)
+        db_alias = CustomerAlias(
+            customer_id=customer.id,
+            alias=alias.alias,
+            embedding=embedding_value
+        )
+        db.add(db_alias)
+
     db.commit()
     return {"status": "created", "customer_id": str(customer.id)}
 
