@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.egg-info/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+*.env
+
+# VS Code & IDE
+.vscode/
+.idea/
+
+# Docker
+*.log
+*.pid
+docker-compose.override.yml
+
+# Bytecode caches
+*.pyc
+*.pyo
+__pycache__/
+
+# macOS & Linux
+.DS_Store
+*.swp
+
+# Pytest
+.cache/
+
+# Uvicorn log file
+uvicorn.log
+
+# Exported or temp files
+*.zip
+*.tar
+*.bak
+*.tmp
