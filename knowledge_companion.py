@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 from datetime import datetime
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
@@ -33,7 +33,7 @@ class CustomerAliasCreate(BaseModel):
     embedding: Optional[str]
 
 class CustomerCreate(BaseModel):
-    id: UUID
+    id: Optional[UUID] = None
     name: str
     industry: Optional[str]
     size: Optional[str]
@@ -68,7 +68,8 @@ def health():
 @app.post("/customers")
 def create_customer(customer: CustomerCreate):
     db = next(get_db())
-    db_customer = Customer(**customer.dict(exclude={"aliases"}))
+    customer_id = customer.id or uuid4()
+    db_customer = Customer(id=customer_id, **customer.dict(exclude={"id", "aliases"}))
     db.add(db_customer)
 
     aliases = customer.aliases or [CustomerAliasCreate(alias=customer.name)]
@@ -76,14 +77,14 @@ def create_customer(customer: CustomerCreate):
     for alias in aliases:
         embedding_value = alias.embedding or fetch_embedding(alias.alias)
         db_alias = CustomerAlias(
-            customer_id=customer.id,
+            customer_id=customer_id,
             alias=alias.alias,
             embedding=embedding_value
         )
         db.add(db_alias)
 
     db.commit()
-    return {"status": "created", "customer_id": str(customer.id)}
+    return {"status": "created", "customer_id": str(customer_id)}
 
 @app.delete("/customers/{customer_id}")
 def delete_customer(customer_id: UUID):
@@ -95,14 +96,25 @@ def delete_customer(customer_id: UUID):
     db.commit()
     return {"status": "deleted"}
 
-@app.get("/customers/{customer_id}")
-def get_customer(customer_id: UUID):
+@app.get("/customers")
+def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(None)):
     db = next(get_db())
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
-    if not customer:
+    query = db.query(Customer)
+    if id:
+        query = query.filter(Customer.id == id)
+    if name:
+        query = query.filter(Customer.name.ilike(f"%{name}%"))
+    customers = query.all()
+
+    if not customers:
         raise HTTPException(status_code=404, detail="Customer not found")
-    aliases = [alias.alias for alias in customer.aliases]
-    return {"id": str(customer.id), "name": customer.name, "aliases": aliases}
+
+    result = []
+    for customer in customers:
+        aliases = [alias.alias for alias in customer.aliases]
+        result.append({"id": str(customer.id), "name": customer.name, "aliases": aliases})
+
+    return result
 
 @app.get("/schema")
 def get_schema():
