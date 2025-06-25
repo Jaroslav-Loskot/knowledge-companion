@@ -1,3 +1,4 @@
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, Text, Integer, ForeignKey, TIMESTAMP, Uuid
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
