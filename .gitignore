@@ -43,3 +43,6 @@ uvicorn.log
 *.tar
 *.bak
 *.tmp
+
+# tests
+test_*
