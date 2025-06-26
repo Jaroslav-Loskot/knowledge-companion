@@ -142,7 +142,7 @@ uvicorn knowledge_companion:app --reload
 
 ## 📜 License
 
-MIT (or your preferred license)
+MIT
 
 ## ✨ Future Ideas
 
