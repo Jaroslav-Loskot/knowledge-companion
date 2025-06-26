@@ -29,8 +29,6 @@ bedrock_client = boto3.client(
 
 
 def summarize_note(note_text: str) -> str:
-    """Summarizes meeting note using Claude Sonnet 4 via Amazon Bedrock provisioned throughput."""
-
     prompt = (
         "You are a helpful assistant. Please summarize the following meeting note in 1–2 sentences:\n\n"
         f"{note_text}\n\nAssistant:"
@@ -41,23 +39,21 @@ def summarize_note(note_text: str) -> str:
         "max_tokens": 500,
         "temperature": 0.5,
         "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt}
         ]
     }
 
     try:
-        response = bedrock_client.invoke_model(
+        response = bedrock_client.invoke_model_with_response_stream(
             modelId=BEDROCK_MODEL_ID,
             body=json.dumps(body),
             contentType="application/json",
             accept="application/json",
-            inferenceConfigurationArn=INFERENCE_CONFIG_ARN  # ← This is the key part
+            inferenceConfigurationArn=INFERENCE_CONFIG_ARN
         )
 
-        response_body = json.loads(response["body"].read())
+        chunks = [event['chunk']['bytes'] for event in response['body']]
+        response_body = json.loads(b''.join(chunks).decode())
         return response_body["content"][0]["text"].strip()
 
     except Exception as e:
