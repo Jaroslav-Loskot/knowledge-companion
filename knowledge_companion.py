@@ -133,16 +133,17 @@ def create_customer(payload: CustomerCreate):
 
 
 
+
 @app.post("/customers/search")
 def vector_search_customers(payload: CustomerVectorSearchRequest):
     db = next(get_db())
     try:
-        # Step 1: Get the embedding
+        # Step 1: Embed the query text
         embedding = fetch_embedding(payload.query)
-        if embedding is None:
-            raise HTTPException(status_code=400, detail="Embedding generation failed.")
+        if not embedding:
+            raise HTTPException(status_code=400, detail="Embedding could not be generated.")
 
-        # Step 2: Build SQL using psycopg2-style placeholders (NOT :param or ::vector)
+        # Step 2: Use SQL with single-percent psycopg2 placeholders
         sql = text("""
             SELECT customer_id, alias, embedding <-> %(query_vector)s AS distance
             FROM customer_alias
@@ -156,6 +157,7 @@ def vector_search_customers(payload: CustomerVectorSearchRequest):
             "top_k": payload.top_k
         }).fetchall()
 
+        # Step 3: Extract and fetch customer info
         customer_ids = list(set(str(row.customer_id) for row in results))
         customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
 
@@ -167,6 +169,7 @@ def vector_search_customers(payload: CustomerVectorSearchRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
+
 
 
 
