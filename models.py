@@ -1,9 +1,10 @@
-from pgvector.sqlalchemy import Vector
+import uuid
 from sqlalchemy import Column, Text, TIMESTAMP, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from pgvector.sqlalchemy import Vector
+
 
 Base = declarative_base()
 
@@ -37,7 +38,7 @@ class Customer(Base):
 
 class CustomerAlias(Base):
     __tablename__ = 'customer_alias'
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     customer_id = Column(UUID(as_uuid=True), ForeignKey('customer.id'))
     alias = Column(Text)
     embedding = Column(Vector(1024))
