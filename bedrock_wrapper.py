@@ -19,48 +19,41 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 # --- Claude Generation via signed HTTP request ---
-def call_claude(system_prompt: str, user_input: str, max_tokens: int = 1024) -> str:
-    """
-    Call Claude Sonnet 4 via Bedrock provisioned model and return assistant's response.
-    """
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": user_input}]
-        }
-    ]
-
-    payload = {
+def call_claude(system_prompt: str, user_input: str) -> str:
+    body = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": max_tokens,
+        "max_tokens": 1000,
         "temperature": 0.7,
-        "top_p": 0.9,
-        "top_k": 250,
-        "messages": messages
+        "system": system_prompt,  # ✅ Top-level key
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": user_input
+                    }
+                ]
+            }
+        ]
     }
 
-    url = f"https://bedrock-runtime.{AWS_REGION}.amazonaws.com/model/{CLAUDE_MODEL_ID}/invoke"
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
+    try:
+        response = bedrock_client.invoke_model(
+            modelId=MODEL_ID,
+            body=json.dumps(body),
+            contentType="application/json",
+            accept="application/json",
+            inferenceConfigurationArn=INFERENCE_ARN
+        )
 
-    creds = Credentials(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-    aws_req = AWSRequest(method="POST", url=url, data=json.dumps(payload), headers=headers)
-    SigV4Auth(creds, "bedrock", AWS_REGION).add_auth(aws_req)
-    signed_headers = dict(aws_req.headers.items())
+        raw = response["body"].read().decode()
+        parsed = json.loads(raw)
+        return parsed["content"][0]["text"].strip()
 
-    response = requests.post(url, headers=signed_headers, data=json.dumps(payload))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Claude request failed: {str(e)}")
 
-    if response.ok:
-        response_data = response.json()
-        try:
-            return response_data["content"][0]["text"].strip()
-        except (KeyError, IndexError):
-            raise RuntimeError("Unexpected response format from Claude.")
-    else:
-        raise RuntimeError(f"Claude request failed ({response.status_code}): {response.text}")
 
 
 # --- Titan Embedding ---
