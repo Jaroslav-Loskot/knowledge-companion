@@ -141,11 +141,11 @@ def search_customers_by_vector(payload: CustomerVectorSearchRequest):
         query_vector = fetch_embedding(payload.query)
 
         # Perform vector similarity search on CustomerAlias table
-        sql = text(f"""
-            SELECT customer_id, alias, embedding <-> :query_vector AS distance
+        sql = text("""
+            SELECT customer_id, alias, embedding <-> :query_vector::vector AS distance
             FROM customer_alias
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <-> :query_vector
+            ORDER BY embedding <-> :query_vector::vector
             LIMIT :top_k;
         """)
 
