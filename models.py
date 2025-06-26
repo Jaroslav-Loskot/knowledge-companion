@@ -57,6 +57,6 @@ class FeatureRequest(Base):
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
 
-    summary = Column(Text)  # ✅ new
-    embedding = Column(Vector(1024))  # ✅ new
+    summary = Column(Text)  
+    embedding = Column(Vector(1024))  
 
