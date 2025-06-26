@@ -137,36 +137,37 @@ def create_customer(payload: CustomerCreate):
 def vector_search_customers(payload: CustomerVectorSearchRequest):
     db = next(get_db())
     try:
-        # Generate embedding from the query text
+        # Step 1: Get the embedding
         embedding = fetch_embedding(payload.query)
         if embedding is None:
-            raise HTTPException(status_code=400, detail="Failed to generate embedding from query.")
+            raise HTTPException(status_code=400, detail="Embedding generation failed.")
 
+        # Step 2: Build SQL using psycopg2-style placeholders (NOT :param or ::vector)
         sql = text("""
-            SELECT customer_id, alias, embedding <-> :query_vector::vector AS distance
+            SELECT customer_id, alias, embedding <-> %(query_vector)s AS distance
             FROM customer_alias
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <-> :query_vector::vector
-            LIMIT :top_k
+            ORDER BY embedding <-> %(query_vector)s
+            LIMIT %(top_k)s
         """)
 
-        rows = db.execute(sql, {
+        results = db.execute(sql, {
             "query_vector": embedding,
             "top_k": payload.top_k
         }).fetchall()
 
-        # Collect unique customer IDs and load full customers
-        customer_ids = list(set(str(row.customer_id) for row in rows))
+        customer_ids = list(set(str(row.customer_id) for row in results))
         customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
 
         return [{
-            "id": str(customer.id),
-            "name": customer.name,
-            "aliases": [alias.alias for alias in customer.aliases]
-        } for customer in customers]
+            "id": str(c.id),
+            "name": c.name,
+            "aliases": [a.alias for a in c.aliases]
+        } for c in customers]
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
+
 
 
 
