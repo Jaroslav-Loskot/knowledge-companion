@@ -3,7 +3,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from models import CustomNote
 import json
-from bedrock_wrapper import call_claude, fetch_embedding  
+from utils.bedrock_wrapper import call_claude, fetch_embedding  
+
 
 def summarize_note(note_text: str) -> str:
     """
