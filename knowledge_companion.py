@@ -23,6 +23,7 @@ from utils.search import apply_dynamic_filters, SearchFilter
 from contact_service import add_contact, search_contacts
 from note_service import add_note
 from featurerequest_service import add_feature_request
+from task_service import add_task
 from schemas import (
     ContactCreate,
     ContactSearchRequest,
@@ -32,7 +33,8 @@ from schemas import (
     CustomerCreate,
     AliasOperationRequest,
     CustomerUpdateRequest,
-    NoteCreateRequest
+    NoteCreateRequest,
+    TaskCreate
 )
 
 
@@ -71,6 +73,23 @@ def get_db():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/tasks")
+def create_task(payload: TaskCreate):
+    db = next(get_db())
+    try:
+        result = add_task(
+            db=db,
+            customer_id=payload.customer_id,
+            title=payload.title,
+            due_date=payload.due_date,
+            status=payload.status,
+            assigned_to=payload.assigned_to
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Task creation failed: {str(e)}")
 
 
 @app.post("/customers")

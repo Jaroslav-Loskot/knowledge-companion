@@ -5,6 +5,13 @@ from uuid import UUID
 from datetime import datetime
 
 # --- SCHEMAS ---
+class TaskCreate(BaseModel):
+    customer_id: UUID
+    title: str
+    due_date: datetime
+    status: str
+    assigned_to: str
+
 class ContactCreate(BaseModel):
     customer_id: UUID
     name: str

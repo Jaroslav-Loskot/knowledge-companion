@@ -7,6 +7,19 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 
+class Task(Base):
+    __tablename__ = "task"
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
+    title = Column(Text)
+    due_date = Column(TIMESTAMP)
+    status = Column(Text)
+    assigned_to = Column(Text)
+
+    summary = Column(Text)
+    embedding = Column(Vector(1024))
+
+
 class Customer(Base):
     __tablename__ = 'customer'
     id = Column(UUID(as_uuid=True), primary_key=True)
