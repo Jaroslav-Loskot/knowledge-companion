@@ -201,13 +201,18 @@ def alias_operation(payload: AliasOperationRequest):
 
     if payload.operation == "add":
         for alias_text in payload.aliases:
-            embedding_value = fetch_embedding(alias_text)
+            try:
+                embedding_value = fetch_embedding(alias_text)
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to fetch embedding: {str(e)}")
+
             db_alias = CustomerAlias(
                 customer_id=payload.customer_id,
                 alias=alias_text,
                 embedding=embedding_value
             )
             db.add(db_alias)
+
 
     elif payload.operation == "delete":
         db.query(CustomerAlias).filter(
