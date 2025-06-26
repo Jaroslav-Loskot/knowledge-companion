@@ -52,12 +52,18 @@ def summarize_note(note_text: str) -> str:
             inferenceConfigurationArn=INFERENCE_CONFIG_ARN
         )
 
-        chunks = [event['chunk']['bytes'] for event in response['body']]
-        response_body = json.loads(b''.join(chunks).decode())
+        chunks = []
+        for event in response['body']:
+            if 'chunk' in event:
+                chunks.append(event['chunk']['bytes'])
+
+        full_response = b''.join(chunks).decode()
+        response_body = json.loads(full_response)
         return response_body["content"][0]["text"].strip()
 
     except Exception as e:
         raise RuntimeError(f"Summarization failed: {str(e)}")
+
 
 def add_note(
     db: Session,
