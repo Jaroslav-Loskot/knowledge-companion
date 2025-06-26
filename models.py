@@ -60,3 +60,14 @@ class FeatureRequest(Base):
     summary = Column(Text)  
     embedding = Column(Vector(1024))  
 
+class Contact(Base):
+    __tablename__ = "contact"
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
+    name = Column(Text)
+    role = Column(Text)
+    email = Column(Text)
+    phone = Column(Text)
+    notes = Column(Text)
+
+

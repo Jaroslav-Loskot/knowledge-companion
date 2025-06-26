@@ -7,12 +7,20 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
+from contact_service import add_contact
+from psycopg2.errors import ForeignKeyViolation
+from sqlalchemy.exc import IntegrityError
 
 from note_service import add_note
 from models import CustomNote
 from models import Base, Customer, CustomerAlias
-from bedrock_wrapper import fetch_embedding
+from utils.bedrock_wrapper import fetch_embedding
 from featurerequest_service import add_feature_request
+from models import Contact
+from contact_service import search_fields  # import if externalized
+from utils.search import apply_dynamic_filters, SearchFilter
+
+
 
 
 # Load AWS credentials from .env
@@ -32,6 +40,22 @@ metadata = MetaData()
 metadata.reflect(bind=engine)
 
 # --- SCHEMAS ---
+class ContactCreate(BaseModel):
+    customer_id: UUID
+    name: str
+    role: str
+    email: str
+    phone: str
+    notes: str
+
+class ContactSearchFilter(BaseModel):
+    field: str
+    value: str
+
+class ContactSearchRequest(BaseModel):
+    customer_id: Optional[UUID] = None
+    filters: Optional[List[ContactSearchFilter]] = []
+
 class FeatureRequestCreate(BaseModel):
     customer_id: UUID
     request_title: str
@@ -96,6 +120,7 @@ def get_db():
 def health():
     return {"status": "ok"}
 
+
 @app.post("/customers")
 def create_customer(customer: CustomerCreate):
     db = next(get_db())
@@ -155,6 +180,34 @@ def alias_operation(payload: AliasOperationRequest):
         "customer_id": str(payload.customer_id),
         "aliases": payload.aliases
     }
+
+
+@app.get("/contacts")
+def get_contacts(customer_id: Optional[UUID] = Query(None), search: Optional[str] = Query(None)):
+    db = next(get_db())
+    query = db.query(Contact)
+
+    if customer_id:
+        query = query.filter(Contact.customer_id == customer_id)
+
+    if search:
+        query = search_fields(query, Contact, ["name", "email"], search)
+
+    results = query.all()
+
+    return [
+        {
+            "id": str(contact.id),
+            "customer_id": str(contact.customer_id),
+            "name": contact.name,
+            "role": contact.role,
+            "email": contact.email,
+            "phone": contact.phone,
+            "notes": contact.notes
+        }
+        for contact in results
+    ]
+
 
 @app.post("/feature-requests")
 def create_feature_request(payload: FeatureRequestCreate):
