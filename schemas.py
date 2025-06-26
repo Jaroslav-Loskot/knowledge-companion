@@ -1,10 +1,11 @@
+from datetime import datetime
+from typing import List, Literal, Optional
+from uuid import UUID
 
 from pydantic import BaseModel
-from typing import List, Optional, Literal
-from uuid import UUID
-from datetime import datetime
 
 # --- SCHEMAS ---
+
 
 class CustomerVectorSearchRequest(BaseModel):
     query: str
@@ -18,6 +19,7 @@ class TaskCreate(BaseModel):
     status: str
     assigned_to: str
 
+
 class ContactCreate(BaseModel):
     customer_id: UUID
     name: str
@@ -26,13 +28,16 @@ class ContactCreate(BaseModel):
     phone: str
     notes: str
 
+
 class ContactSearchFilter(BaseModel):
     field: str
     value: str
 
+
 class ContactSearchRequest(BaseModel):
     customer_id: Optional[UUID] = None
     filters: Optional[List[ContactSearchFilter]] = []
+
 
 class FeatureRequestCreate(BaseModel):
     customer_id: UUID
@@ -54,6 +59,7 @@ class AliasOperationRequest(BaseModel):
     customer_id: UUID
     aliases: List[str]
 
+
 class CustomerCreate(BaseModel):
     id: Optional[UUID] = None
     name: str
@@ -68,13 +74,16 @@ class CustomerCreate(BaseModel):
     mainpage_url: Optional[str] = None
     aliases: Optional[List[CustomerAliasCreate]] = []
 
+
 class AliasOperationRequest(BaseModel):
     operation: Literal["add", "delete", "update"]
     customer_id: UUID
     aliases: List[str]
 
+
 class CustomerUpdateRequest(BaseModel):
     name: Optional[str] = None
+
 
 class NoteCreateRequest(BaseModel):
     customer_id: UUID

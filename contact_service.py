@@ -1,10 +1,12 @@
-from uuid import uuid4, UUID
-from sqlalchemy.orm import Session, Query
-from sqlalchemy import or_
 from typing import List, Optional
-from models import Contact
-from utils.search import apply_dynamic_filters, SearchFilter
+from uuid import UUID, uuid4
+
 from pydantic import BaseModel
+from sqlalchemy import or_
+from sqlalchemy.orm import Query, Session
+
+from models import Contact
+from utils.search import SearchFilter, apply_dynamic_filters
 
 
 # --- SCHEMAS FOR SERVICE USE ---
@@ -16,6 +18,7 @@ class ContactPayload(BaseModel):
     phone: str
     notes: str
 
+
 class ContactUpdatePayload(BaseModel):
     contact_id: UUID
     name: Optional[str] = None
@@ -23,6 +26,7 @@ class ContactUpdatePayload(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     notes: Optional[str] = None
+
 
 class ContactSearchPayload(BaseModel):
     filters: List[SearchFilter] = []
@@ -40,7 +44,7 @@ def add_contact(db: Session, payload: ContactPayload):
         role=payload.role,
         email=payload.email,
         phone=payload.phone,
-        notes=payload.notes
+        notes=payload.notes,
     )
 
     db.add(contact)
