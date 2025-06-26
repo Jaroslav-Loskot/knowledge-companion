@@ -8,3 +8,4 @@ python-dotenv
 requests
 sqlalchemy
 uvicorn[standard]
+numpy
