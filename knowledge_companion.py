@@ -8,6 +8,9 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 
+from note_service import add_note
+from models import CustomNote
+
 from models import Base, Customer, CustomerAlias
 from embeddings import fetch_embedding
 
@@ -53,6 +56,17 @@ class AliasOperationRequest(BaseModel):
 
 class CustomerUpdateRequest(BaseModel):
     name: Optional[str] = None
+
+class NoteCreateRequest(BaseModel):
+    customer_id: UUID
+    author: str
+    timestamp: Optional[datetime] = None
+    category: Optional[str] = None
+    summary: Optional[str] = None
+    full_note: str
+    tags: Optional[str] = None
+    source: Optional[str] = None
+
 
 # --- FASTAPI APP ---
 app = FastAPI(
@@ -175,6 +189,24 @@ def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(N
         result.append({"id": str(customer.id), "name": customer.name, "aliases": aliases})
 
     return result
+
+
+@app.post("/notes")
+def create_note(payload: NoteCreateRequest):
+    db = next(get_db())
+    result = add_note(
+        db=db,
+        customer_id=payload.customer_id,
+        author=payload.author,
+        category=payload.category or "",
+        summary=payload.summary or "",
+        full_note=payload.full_note,
+        tags=payload.tags or "",
+        source=payload.source or "",
+        timestamp=payload.timestamp
+    )
+    return result
+
 
 @app.get("/schema")
 def get_schema():

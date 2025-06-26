@@ -1,5 +1,6 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, Text, Integer, ForeignKey, TIMESTAMP, Uuid
+from sqlalchemy import Column, Text, TIMESTAMP, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -7,7 +8,7 @@ Base = declarative_base()
 
 class Customer(Base):
     __tablename__ = 'customer'
-    id = Column(Uuid, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True)
     name = Column(Text)
     industry = Column(Text)
     size = Column(Text)
@@ -22,8 +23,21 @@ class Customer(Base):
 
 class CustomerAlias(Base):
     __tablename__ = 'customer_alias'
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Uuid, ForeignKey('customer.id'))
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey('customer.id'))
     alias = Column(Text)
-    embedding = Column(Vector(1024))  # or the appropriate dimension
+    embedding = Column(Vector(1024))
     customer = relationship("Customer", back_populates="aliases")
+
+class CustomNote(Base):
+    __tablename__ = "customnotes"
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
+    author = Column(Text)
+    timestamp = Column(TIMESTAMP)
+    category = Column(Text)
+    summary = Column(Text)
+    full_note = Column(Text)
+    tags = Column(Text)
+    source = Column(Text)
+    embedding = Column(Vector(1024))
