@@ -94,6 +94,25 @@ def create_customer(customer: CustomerCreate):
     db.commit()
     return {"status": "created", "customer_id": str(customer_id)}
 
+@app.post("/contacts")
+def create_contact(payload: ContactCreate):
+    db = next(get_db())
+    try:
+        result = add_contact(
+            db=db,
+            customer_id=payload.customer_id,
+            name=payload.name,
+            role=payload.role,
+            email=payload.email,
+            phone=payload.phone,
+            notes=payload.notes
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Contact creation failed: {str(e)}")
+
+
+
 @app.post("/aliases")
 def alias_operation(payload: AliasOperationRequest):
     db = next(get_db())
