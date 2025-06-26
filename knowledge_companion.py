@@ -12,6 +12,8 @@ from note_service import add_note
 from models import CustomNote
 from models import Base, Customer, CustomerAlias
 from bedrock_wrapper import fetch_embedding
+from featurerequest_service import add_feature_request
+
 
 # Load AWS credentials from .env
 load_dotenv()
@@ -30,6 +32,16 @@ metadata = MetaData()
 metadata.reflect(bind=engine)
 
 # --- SCHEMAS ---
+class FeatureRequestCreate(BaseModel):
+    customer_id: UUID
+    request_title: str
+    description: str
+    priority: str
+    status: str
+    estimated_delivery: datetime
+    internal_notes: str
+
+
 class CustomerAliasCreate(BaseModel):
     alias: str
     embedding: Optional[List[float]] = None
@@ -143,6 +155,25 @@ def alias_operation(payload: AliasOperationRequest):
         "customer_id": str(payload.customer_id),
         "aliases": payload.aliases
     }
+
+@app.post("/feature-requests")
+def create_feature_request(payload: FeatureRequestCreate):
+    db = next(get_db())
+    try:
+        result = add_feature_request(
+            db=db,
+            customer_id=payload.customer_id,
+            request_title=payload.request_title,
+            description=payload.description,
+            priority=payload.priority,
+            status=payload.status,
+            estimated_delivery=payload.estimated_delivery,
+            internal_notes=payload.internal_notes
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Feature request creation failed: {str(e)}")
+
 
 @app.patch("/customers/{customer_id}")
 def update_customer(customer_id: UUID, update: CustomerUpdateRequest):

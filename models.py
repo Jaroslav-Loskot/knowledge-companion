@@ -42,3 +42,21 @@ class CustomNote(Base):
     tags = Column(JSONB)
     source = Column(Text)
     embedding = Column(Vector(1024))
+
+
+class FeatureRequest(Base):
+    __tablename__ = "featurerequest"
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
+    request_title = Column(Text)
+    description = Column(Text)  # raw input
+    priority = Column(Text)
+    status = Column(Text)
+    estimated_delivery = Column(TIMESTAMP)
+    internal_notes = Column(Text)
+    created_at = Column(TIMESTAMP)
+    updated_at = Column(TIMESTAMP)
+
+    summary = Column(Text)  # ✅ new
+    embedding = Column(Vector(1024))  # ✅ new
+
