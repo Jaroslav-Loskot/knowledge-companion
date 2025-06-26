@@ -47,8 +47,7 @@ def call_claude(system_prompt: str, user_input: str) -> str:
             modelId=MODEL_ID,
             body=json.dumps(body),
             contentType="application/json",
-            accept="application/json",
-            inferenceConfigurationArn=INFERENCE_ARN
+            accept="application/json"
         )
 
         raw = response["body"].read().decode()
