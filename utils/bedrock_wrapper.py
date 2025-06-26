@@ -83,8 +83,17 @@ def fetch_embedding(text: str) -> list[float]:
             accept="application/json"
         )
         body = response['body'].read().decode()
+        logging.info(f"Bedrock response body: {body}")
         result = json.loads(body)
-        return result.get('embedding')
+
+        embedding = result.get("embedding")
+        if not embedding or not isinstance(embedding, list):
+            logging.error(f"Invalid embedding structure: {result}")
+            raise HTTPException(status_code=500, detail="Embedding response invalid or missing.")
+
+        return embedding
+
     except Exception as e:
         logging.error(f"Embedding generation failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
+
