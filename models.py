@@ -3,6 +3,7 @@ from sqlalchemy import Column, Text, TIMESTAMP, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 
@@ -38,6 +39,6 @@ class CustomNote(Base):
     category = Column(Text)
     summary = Column(Text)
     full_note = Column(Text)
-    tags = Column(Text)
+    tags = Column(JSONB)
     source = Column(Text)
     embedding = Column(Vector(1024))
