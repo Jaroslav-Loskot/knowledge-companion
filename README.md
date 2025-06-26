@@ -1,151 +1,158 @@
 ````markdown
-# Knowledge Companion Service
+# 🧠 Knowledge Companion
 
-A microservice built with FastAPI to manage customer information, aliases, and embeddings. Designed to support AI agents and RAG-based systems within an integrated Information Hub.
-
----
+**Knowledge Companion** is a FastAPI microservice designed to manage customer metadata, semantic aliases, and meeting notes with automatic summarization and vector embeddings. It serves as a backend support service for AI agents and RAG-based systems in an integrated Information Hub.
 
 ## 🚀 Features
 
-- Create and update customer records
-- Add, delete, or update customer aliases
-- Automatically generates text embeddings for aliases
-- Query customers by ID or name
-- Health check and database schema introspection
+- Create, update, and delete customers with associated metadata.
+- Manage semantic customer aliases and generate embeddings using Amazon Titan.
+- Record, summarize, and embed custom notes using Claude (via Amazon Bedrock).
+- PostgreSQL + pgvector support for vector storage.
+- REST API powered by FastAPI.
+- Schema introspection endpoint for dynamic integration.
 
----
+## 📦 Tech Stack
 
-## 📦 Requirements
+- **Python 3.10+**
+- **FastAPI** for web service
+- **SQLAlchemy + PostgreSQL (pgvector)** for data storage
+- **Amazon Bedrock** for LLMs and embeddings
+- **Claude Sonnet** for summarization
+- **Titan Embed Text** for vector embeddings
 
-Install dependencies with:
+## ⚙️ Environment Variables
 
-```bash
-pip install -r requirements.txt
-````
-
----
-
-## ⚙️ Environment Configuration
-
-Copy `.env.example` to `.env` and fill in your configuration:
+Create a `.env` file in the root with the following content:
 
 ```env
+# AWS
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_REGION=your_region
+BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
+BEDROCK_INFERENCE_CONFIG_ARN=...
+
+# Database
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
-DB_HOST=your_db_host
+DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=your_db_name
+````
 
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
-```
+## 🧪 API Endpoints
 
----
-
-## 🐳 Docker
-
-Build and run the container:
-
-```bash
-docker-compose up --build
-```
-
-The service will be available at: [http://localhost:8010](http://localhost:8010)
-
----
-
-## 🧪 Health Check
+### Health Check
 
 ```http
 GET /health
 ```
 
----
+### Customers
 
-## 📚 Endpoints
-
-### ➕ Create Customer
+* **Create a customer**
 
 ```http
 POST /customers
 ```
 
-Payload:
-
-```json
-{
-  "name": "DFCU",
-  "aliases": [
-    { "alias": "Cedar Point" },
-    { "alias": "CPFCU" }
-  ]
-}
-```
-
-### 🔄 Update Customer Name
+* **Update customer name**
 
 ```http
 PATCH /customers/{customer_id}
 ```
 
-Payload:
-
-```json
-{
-  "name": "New Name"
-}
-```
-
-### ❌ Delete Customer
+* **Delete a customer**
 
 ```http
 DELETE /customers/{customer_id}
 ```
 
----
+* **Search customer by ID or name**
 
-### 📬 Manage Aliases
+```http
+GET /customers
+```
+
+### Aliases
+
+* Add, update, or delete customer aliases (with embedding)
 
 ```http
 POST /aliases
 ```
 
-Payload:
+### Notes
 
-```json
-{
-  "operation": "add",         // or "delete", "update"
-  "customer_id": "uuid-here",
-  "aliases": ["Alias A", "Alias B"]
-}
-```
-
----
-
-### 🔍 Query Customers
+* Add a note with automatic summarization and embedding
 
 ```http
-GET /customers?id=...&name=...
+POST /notes
 ```
 
-Supports filtering by ID, name, or both.
+### Schema
 
----
-
-### 📊 View Schema
+* Get database schema for introspection
 
 ```http
 GET /schema
 ```
 
-Returns a list of all tables and their columns.
+## 🛠 Setup & Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Jaroslav-Loskot/knowledge-companion.git
+cd knowledge-companion
+```
+
+### 2. Create virtual environment and install dependencies
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 3. Set up PostgreSQL
+
+Ensure you have a PostgreSQL database ready and accessible using the `.env` credentials. Make sure the `pgvector` extension is enabled.
+
+### 4. Run the server
+
+```bash
+uvicorn knowledge_companion:app --reload
+```
+
+## 🧠 Usage Flow
+
+1. **Create a customer** with one or more aliases.
+2. **Aliases** are automatically embedded with Titan for semantic search.
+3. **Add notes** to customers – notes are summarized by Claude and stored with embeddings.
+4. Use embeddings in downstream RAG or search systems.
+
+## 🧪 Development Notes
+
+* Models defined in `models.py`
+* Claude summarization and Titan embeddings in `bedrock_wrapper.py`
+* Database-backed notes and customers linked semantically
+* `.env` required for sensitive configs
+
+## 📜 License
+
+MIT (or your preferred license)
+
+## ✨ Future Ideas
+
+* Semantic search over notes and customers
+* UI dashboard for browsing customers
+* Integration with external tools like Salesforce or Jira
 
 ---
 
-## 💡 Future Ideas
+Maintained by [@Jaroslav-Loskot](https://github.com/Jaroslav-Loskot)
 
-* Fuzzy alias resolution
-* Alias deduplication logic
-* Full-text search
-* Embedding similarity-based lookups
+```
 
