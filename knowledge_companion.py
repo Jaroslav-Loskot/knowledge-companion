@@ -143,21 +143,28 @@ def vector_search_customers(payload: CustomerVectorSearchRequest):
         if not embedding:
             raise HTTPException(status_code=400, detail="Embedding could not be generated.")
 
-        # Step 2: Use SQL with single-percent psycopg2 placeholders
+        # Step 2: Use SQLAlchemy's recommended colon-prefix placeholders for parameters.
         sql = text("""
-            SELECT customer_id, alias, embedding <-> %(query_vector)s AS distance
+            SELECT customer_id, alias, embedding <-> :query_vector AS distance
             FROM customer_alias
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <-> %(query_vector)s
-            LIMIT %(top_k)s
+            ORDER BY embedding <-> :query_vector
+            LIMIT :top_k
         """)
 
+        # When using pgvector with raw SQL, pass the vector as a string.
+        # np.array() is used for robustness in case the embedding is not a standard list.
+        embedding_str = str(np.array(embedding).tolist())
+
         results = db.execute(sql, {
-            "query_vector": embedding,
+            "query_vector": embedding_str,
             "top_k": payload.top_k
         }).fetchall()
 
         # Step 3: Extract and fetch customer info
+        if not results:
+            return []
+            
         customer_ids = list(set(str(row.customer_id) for row in results))
         customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
 
@@ -168,9 +175,9 @@ def vector_search_customers(payload: CustomerVectorSearchRequest):
         } for c in customers]
 
     except Exception as e:
+        # It's helpful to log the original error for debugging purposes
+        print(f"An error occurred during customer search: {e}")
         raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
-
-
 
 
 
