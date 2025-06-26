@@ -65,6 +65,7 @@ class NoteCreateRequest(BaseModel):
     full_note: str
     tags: List[str]           # ← Correct type for JSONB array
     source: str
+    timestamp: Optional[datetime] = None  
 
 
 # --- FASTAPI APP ---
