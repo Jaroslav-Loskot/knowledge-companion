@@ -18,12 +18,14 @@ bedrock_client = boto3.client(
 )
 
 def fetch_embedding(text: str) -> list[float]:
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Input text is empty.")
+
     try:
         payload = {
-            "inputText": text,
-            "dimensions": 1024,
-            "normalize": True
+            "inputText": text
         }
+
         response = bedrock_client.invoke_model(
             modelId="amazon.titan-embed-text-v2:0",
             body=json.dumps(payload),
@@ -35,4 +37,5 @@ def fetch_embedding(text: str) -> list[float]:
         return result.get('embedding')
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
+
 
