@@ -14,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import ForeignKeyViolation
 from fastapi import HTTPException
+from utils.bedrock_wrapper import fetch_embedding  # ensure this is imported
 
 from models import (
     Base,
@@ -101,7 +102,7 @@ def create_task(payload: TaskCreate):
 def create_customer(payload: CustomerCreate):
     db = next(get_db())
     try:
-        # Try to create the customer using your service
+        # Step 1: Create the customer
         customer = Customer(
             id=payload.id or uuid4(),
             name=payload.name,
@@ -115,14 +116,23 @@ def create_customer(payload: CustomerCreate):
             salesforce_account_id=payload.salesforce_account_id,
             mainpage_url=payload.mainpage_url,
         )
-
         db.add(customer)
-        db.flush()  # ensure the customer is created and has an ID
+        db.flush()  # Get generated ID
 
-        # Add aliases (if any)
-        for alias in payload.aliases:
-                db.add(CustomerAlias(id=uuid4(), customer_id=customer.id, alias=alias.alias))
+        # Step 2: Prepare aliases (always include customer name)
+        alias_texts = [payload.name]
+        if payload.aliases:
+            alias_texts.extend([a.alias for a in payload.aliases])
 
+        # Step 3: Add aliases with embeddings
+        for alias_text in set(alias_texts):  # avoid duplicates
+            embedding = fetch_embedding(alias_text)
+            db.add(CustomerAlias(
+                id=uuid4(),
+                customer_id=customer.id,
+                alias=alias_text,
+                embedding=embedding
+            ))
 
         db.commit()
         return {"status": "customer created", "customer_id": str(customer.id)}
