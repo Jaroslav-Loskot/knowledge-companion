@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import ForeignKeyViolation
+from fastapi import HTTPException
 
 from models import (
     Base,
@@ -113,22 +114,36 @@ def create_customer(customer: CustomerCreate):
     db.commit()
     return {"status": "created", "customer_id": str(customer_id)}
 
-@app.post("/contacts")
-def create_contact(payload: ContactCreate):
+from fastapi import HTTPException
+import logging  # Optional, for logging errors
+
+@app.post("/customers")
+def create_customer(customer: CustomerCreate):
     db = next(get_db())
+    customer_id = customer.id or uuid4()
     try:
-        result = add_contact(
-            db=db,
-            customer_id=payload.customer_id,
-            name=payload.name,
-            role=payload.role,
-            email=payload.email,
-            phone=payload.phone,
-            notes=payload.notes
-        )
-        return result
+        db_customer = Customer(id=customer_id, **customer.dict(exclude={"id", "aliases"}))
+        db.add(db_customer)
+
+        aliases = customer.aliases or [CustomerAliasCreate(alias=customer.name)]
+
+        for alias in aliases:
+            embedding_value = alias.embedding or fetch_embedding(alias.alias)
+            db_alias = CustomerAlias(
+                customer_id=customer_id,
+                alias=alias.alias,
+                embedding=embedding_value
+            )
+            db.add(db_alias)
+
+        db.commit()
+        return {"status": "created", "customer_id": str(customer_id)}
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Contact creation failed: {str(e)}")
+        db.rollback()
+        # This sends the actual error message back to the client
+        raise HTTPException(status_code=500, detail=f"Customer creation failed: {str(e)}")
+
 
 
 
