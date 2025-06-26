@@ -10,7 +10,6 @@ import os
 
 from note_service import add_note
 from models import CustomNote
-
 from models import Base, Customer, CustomerAlias
 from embeddings import fetch_embedding
 
@@ -61,12 +60,10 @@ class NoteCreateRequest(BaseModel):
     customer_id: UUID
     author: str
     category: str
-    summary: str
     full_note: str
-    tags: List[str]           # ← Correct type for JSONB array
+    tags: List[str]
     source: str
-    timestamp: Optional[datetime] = None  
-
+    timestamp: Optional[datetime] = None
 
 # --- FASTAPI APP ---
 app = FastAPI(
@@ -190,7 +187,6 @@ def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(N
 
     return result
 
-
 @app.post("/notes")
 def create_note(payload: NoteCreateRequest):
     db = next(get_db())
@@ -200,17 +196,14 @@ def create_note(payload: NoteCreateRequest):
             customer_id=payload.customer_id,
             author=payload.author,
             category=payload.category or "",
-            summary=payload.summary or "",
             full_note=payload.full_note,
-            tags=payload.tags or "",
+            tags=payload.tags,
             source=payload.source or "",
             timestamp=payload.timestamp
         )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Note creation failed: {str(e)}")
-
-
 
 @app.get("/schema")
 def get_schema():
