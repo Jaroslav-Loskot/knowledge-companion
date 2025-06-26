@@ -194,18 +194,22 @@ def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(N
 @app.post("/notes")
 def create_note(payload: NoteCreateRequest):
     db = next(get_db())
-    result = add_note(
-        db=db,
-        customer_id=payload.customer_id,
-        author=payload.author,
-        category=payload.category or "",
-        summary=payload.summary or "",
-        full_note=payload.full_note,
-        tags=payload.tags or "",
-        source=payload.source or "",
-        timestamp=payload.timestamp
-    )
-    return result
+    try:
+        result = add_note(
+            db=db,
+            customer_id=payload.customer_id,
+            author=payload.author,
+            category=payload.category or "",
+            summary=payload.summary or "",
+            full_note=payload.full_note,
+            tags=payload.tags or "",
+            source=payload.source or "",
+            timestamp=payload.timestamp
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Note creation failed: {str(e)}")
+
 
 
 @app.get("/schema")
