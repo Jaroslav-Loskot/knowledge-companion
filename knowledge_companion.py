@@ -11,7 +11,7 @@ import os
 from note_service import add_note
 from models import CustomNote
 from models import Base, Customer, CustomerAlias
-from embeddings import fetch_embedding
+from bedrock_wrapper import fetch_embedding
 
 # Load AWS credentials from .env
 load_dotenv()
