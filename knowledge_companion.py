@@ -1,26 +1,39 @@
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+import os
 from uuid import UUID, uuid4
 from datetime import datetime
+from typing import List, Optional, Literal
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-import os
-from contact_service import add_contact
-from psycopg2.errors import ForeignKeyViolation
 from sqlalchemy.exc import IntegrityError
+from psycopg2.errors import ForeignKeyViolation
 
-from note_service import add_note
-from models import CustomNote
-from models import Base, Customer, CustomerAlias
+from models import (
+    Base,
+    Customer,
+    CustomerAlias,
+    CustomNote,
+    Contact
+)
 from utils.bedrock_wrapper import fetch_embedding
-from featurerequest_service import add_feature_request
-from models import Contact
-from contact_service import search_fields  # import if externalized
 from utils.search import apply_dynamic_filters, SearchFilter
-
-
+from contact_service import add_contact, search_contacts
+from note_service import add_note
+from featurerequest_service import add_feature_request
+from schemas import (
+    ContactCreate,
+    ContactSearchRequest,
+    ContactSearchFilter,
+    FeatureRequestCreate,
+    CustomerAliasCreate,
+    CustomerCreate,
+    AliasOperationRequest,
+    CustomerUpdateRequest,
+    NoteCreateRequest
+)
 
 
 # Load AWS credentials from .env
@@ -39,67 +52,6 @@ Base.metadata.create_all(bind=engine)
 metadata = MetaData()
 metadata.reflect(bind=engine)
 
-# --- SCHEMAS ---
-class ContactCreate(BaseModel):
-    customer_id: UUID
-    name: str
-    role: str
-    email: str
-    phone: str
-    notes: str
-
-class ContactSearchFilter(BaseModel):
-    field: str
-    value: str
-
-class ContactSearchRequest(BaseModel):
-    customer_id: Optional[UUID] = None
-    filters: Optional[List[ContactSearchFilter]] = []
-
-class FeatureRequestCreate(BaseModel):
-    customer_id: UUID
-    request_title: str
-    description: str
-    priority: str
-    status: str
-    estimated_delivery: datetime
-    internal_notes: str
-
-
-class CustomerAliasCreate(BaseModel):
-    alias: str
-    embedding: Optional[List[float]] = None
-
-class CustomerCreate(BaseModel):
-    id: Optional[UUID] = None
-    name: str
-    industry: Optional[str] = None
-    size: Optional[str] = None
-    region: Optional[str] = None
-    status: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    jira_project_key: Optional[str] = None
-    salesforce_account_id: Optional[str] = None
-    mainpage_url: Optional[str] = None
-    aliases: Optional[List[CustomerAliasCreate]] = []
-
-class AliasOperationRequest(BaseModel):
-    operation: Literal["add", "delete", "update"]
-    customer_id: UUID
-    aliases: List[str]
-
-class CustomerUpdateRequest(BaseModel):
-    name: Optional[str] = None
-
-class NoteCreateRequest(BaseModel):
-    customer_id: UUID
-    author: str
-    category: str
-    full_note: str
-    tags: List[str]
-    source: str
-    timestamp: Optional[datetime] = None
 
 # --- FASTAPI APP ---
 app = FastAPI(
@@ -182,16 +134,15 @@ def alias_operation(payload: AliasOperationRequest):
     }
 
 
-@app.get("/contacts")
-def get_contacts(customer_id: Optional[UUID] = Query(None), search: Optional[str] = Query(None)):
+@app.post("/contacts/search")
+def search_contacts_api(payload: ContactSearchRequest):
     db = next(get_db())
     query = db.query(Contact)
 
-    if customer_id:
-        query = query.filter(Contact.customer_id == customer_id)
+    if payload.customer_id:
+        query = query.filter(Contact.customer_id == payload.customer_id)
 
-    if search:
-        query = search_fields(query, Contact, ["name", "email"], search)
+    query = search_contacts(query, payload.filters or [])
 
     results = query.all()
 
@@ -207,6 +158,7 @@ def get_contacts(customer_id: Optional[UUID] = Query(None), search: Optional[str
         }
         for contact in results
     ]
+
 
 
 @app.post("/feature-requests")

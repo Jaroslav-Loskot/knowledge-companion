@@ -2,7 +2,8 @@ from uuid import uuid4, UUID
 from datetime import datetime
 from sqlalchemy.orm import Session
 from models import FeatureRequest
-from bedrock_wrapper import call_claude, fetch_embedding
+from utils.bedrock_wrapper import call_claude, fetch_embedding
+
 
 
 def summarize_feature_request(text: str) -> str:
