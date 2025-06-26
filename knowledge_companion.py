@@ -139,45 +139,44 @@ def create_customer(payload: CustomerCreate):
 def vector_search_customers(payload: CustomerVectorSearchRequest):
     db = next(get_db())
     try:
-        # Step 1: Embed the query text
+        # Step 1: Get embedding for query
         embedding = fetch_embedding(payload.query)
         if not embedding:
             raise HTTPException(status_code=400, detail="Embedding could not be generated.")
 
-        # Step 2: Use SQLAlchemy's recommended colon-prefix placeholders for parameters.
+        # Step 2: Run the similarity search using pgvector
+        # Note: use ARRAY syntax to cast Python list to PostgreSQL-compatible array
         sql = text("""
-            SELECT customer_id, alias, embedding <-> :query_vector AS distance
+            SELECT customer_id, alias, embedding <-> CAST(:query_vector AS vector) AS distance
             FROM customer_alias
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <-> :query_vector
+            ORDER BY embedding <-> CAST(:query_vector AS vector)
             LIMIT :top_k
         """)
 
-        # When using pgvector with raw SQL, pass the vector as a string.
-        # np.array() is used for robustness in case the embedding is not a standard list.
-        embedding_str = str(np.array(embedding).tolist())
-
         results = db.execute(sql, {
-            "query_vector": embedding_str,
+            "query_vector": embedding,
             "top_k": payload.top_k
         }).fetchall()
 
-        # Step 3: Extract and fetch customer info
         if not results:
             return []
-            
+
+        # Step 3: Collect customer IDs and fetch their data
         customer_ids = list(set(str(row.customer_id) for row in results))
         customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
 
-        return [{
-            "id": str(c.id),
-            "name": c.name,
-            "aliases": [a.alias for a in c.aliases]
-        } for c in customers]
+        return [
+            {
+                "id": str(c.id),
+                "name": c.name,
+                "aliases": [a.alias for a in c.aliases]
+            }
+            for c in customers
+        ]
 
     except Exception as e:
-        # It's helpful to log the original error for debugging purposes
-        print(f"An error occurred during customer search: {e}")
+        print(f"Error during vector search: {e}")
         raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
 
 
