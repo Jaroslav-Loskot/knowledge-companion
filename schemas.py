@@ -44,9 +44,10 @@ class FeatureRequestCreate(BaseModel):
     internal_notes: str
 
 
-class CustomerAliasCreate(BaseModel):
-    alias: str
-    embedding: Optional[List[float]] = None
+class AliasOperationRequest(BaseModel):
+    operation: str
+    customer_id: UUID
+    aliases: List[str]
 
 class CustomerCreate(BaseModel):
     id: Optional[UUID] = None
