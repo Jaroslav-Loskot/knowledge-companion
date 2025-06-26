@@ -60,12 +60,11 @@ class CustomerUpdateRequest(BaseModel):
 class NoteCreateRequest(BaseModel):
     customer_id: UUID
     author: str
-    timestamp: Optional[datetime] = None
-    category: Optional[str] = None
-    summary: Optional[str] = None
+    category: str
+    summary: str
     full_note: str
-    tags: Optional[str] = None
-    source: Optional[str] = None
+    tags: List[str]           # ← Correct type for JSONB array
+    source: str
 
 
 # --- FASTAPI APP ---

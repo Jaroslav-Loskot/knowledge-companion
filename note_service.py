@@ -32,10 +32,11 @@ def add_note(
         category=category,
         summary=summary,
         full_note=full_note,
-        tags=tags,
+        tags=tags,                  # ← this stays a Python list
         source=source,
         embedding=embedding_value
     )
+
 
     db.add(note)
     db.commit()
