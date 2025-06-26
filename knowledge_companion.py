@@ -40,7 +40,8 @@ from schemas import (
     CustomerUpdateRequest,
     NoteCreateRequest,
     TaskCreate,
-    CustomerVectorSearchRequest
+    CustomerVectorSearchRequest,
+    AliasOperationRequest
 )
 
 
