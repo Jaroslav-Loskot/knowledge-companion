@@ -1,9 +1,10 @@
-import boto3
 import json
-import os
-from fastapi import HTTPException
-from dotenv import load_dotenv
 import logging
+import os
+
+import boto3
+from dotenv import load_dotenv
+from fastapi import HTTPException
 
 load_dotenv()
 
@@ -18,7 +19,7 @@ bedrock_client = boto3.client(
     service_name="bedrock-runtime",
     region_name=AWS_REGION,
     aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
 )
 
 
@@ -30,16 +31,8 @@ def call_claude(system_prompt: str, user_input: str) -> str:
         "temperature": 0.7,
         "system": system_prompt,  # ✅ Top-level key
         "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": user_input
-                    }
-                ]
-            }
-        ]
+            {"role": "user", "content": [{"type": "text", "text": user_input}]}
+        ],
     }
 
     try:
@@ -47,7 +40,7 @@ def call_claude(system_prompt: str, user_input: str) -> str:
             modelId=MODEL_ID,
             body=json.dumps(body),
             contentType="application/json",
-            accept="application/json"
+            accept="application/json",
         )
 
         raw = response["body"].read().decode()
@@ -58,14 +51,14 @@ def call_claude(system_prompt: str, user_input: str) -> str:
         raise HTTPException(status_code=500, detail=f"Claude request failed: {str(e)}")
 
 
-
 # --- Titan Embedding ---
 bedrock_client = boto3.client(
     service_name="bedrock-runtime",
     region_name=AWS_REGION,
     aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
 )
+
 
 def fetch_embedding(text: str) -> list[float]:
     """
@@ -80,20 +73,23 @@ def fetch_embedding(text: str) -> list[float]:
             modelId="amazon.titan-embed-text-v2:0",
             body=json.dumps(payload),
             contentType="application/json",
-            accept="application/json"
+            accept="application/json",
         )
-        body = response['body'].read().decode()
+        body = response["body"].read().decode()
         logging.info(f"Bedrock response body: {body}")
         result = json.loads(body)
 
         embedding = result.get("embedding")
         if not embedding or not isinstance(embedding, list):
             logging.error(f"Invalid embedding structure: {result}")
-            raise HTTPException(status_code=500, detail="Embedding response invalid or missing.")
+            raise HTTPException(
+                status_code=500, detail="Embedding response invalid or missing."
+            )
 
         return embedding
 
     except Exception as e:
         logging.error(f"Embedding generation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Embedding generation failed: {str(e)}"
+        )

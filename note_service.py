@@ -1,9 +1,11 @@
-from uuid import uuid4, UUID
-from datetime import datetime
-from sqlalchemy.orm import Session
-from models import CustomNote
 import json
-from utils.bedrock_wrapper import call_claude, fetch_embedding  
+from datetime import datetime
+from uuid import UUID, uuid4
+
+from sqlalchemy.orm import Session
+
+from models import CustomNote
+from utils.bedrock_wrapper import call_claude, fetch_embedding
 
 
 def summarize_note(note_text: str) -> str:
@@ -24,7 +26,7 @@ def add_note(
     full_note: dict,
     tags: list,
     source: str,
-    timestamp: datetime = None
+    timestamp: datetime = None,
 ):
     note_id = uuid4()
     timestamp = timestamp or datetime.utcnow()
@@ -43,7 +45,7 @@ def add_note(
         full_note=full_note,
         tags=tags,
         source=source,
-        embedding=embedding
+        embedding=embedding,
     )
 
     db.add(note)

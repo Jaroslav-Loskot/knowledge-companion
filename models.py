@@ -1,12 +1,13 @@
 import uuid
-from sqlalchemy import Column, Text, TIMESTAMP, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import TIMESTAMP, Column, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
-
 
 Base = declarative_base()
+
 
 class Task(Base):
     __tablename__ = "task"
@@ -22,7 +23,7 @@ class Task(Base):
 
 
 class Customer(Base):
-    __tablename__ = 'customer'
+    __tablename__ = "customer"
     id = Column(UUID(as_uuid=True), primary_key=True)
     name = Column(Text)
     industry = Column(Text)
@@ -34,15 +35,19 @@ class Customer(Base):
     jira_project_key = Column(Text)
     salesforce_account_id = Column(Text)
     mainpage_url = Column(Text)
-    aliases = relationship("CustomerAlias", back_populates="customer", cascade="all, delete")
+    aliases = relationship(
+        "CustomerAlias", back_populates="customer", cascade="all, delete"
+    )
+
 
 class CustomerAlias(Base):
-    __tablename__ = 'customer_alias'
+    __tablename__ = "customer_alias"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    customer_id = Column(UUID(as_uuid=True), ForeignKey('customer.id'))
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
     alias = Column(Text)
     embedding = Column(Vector(1024))
     customer = relationship("Customer", back_populates="aliases")
+
 
 class CustomNote(Base):
     __tablename__ = "customnotes"
@@ -71,8 +76,9 @@ class FeatureRequest(Base):
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
 
-    summary = Column(Text)  
-    embedding = Column(Vector(1024))  
+    summary = Column(Text)
+    embedding = Column(Vector(1024))
+
 
 class Contact(Base):
     __tablename__ = "contact"
@@ -83,5 +89,3 @@ class Contact(Base):
     email = Column(Text)
     phone = Column(Text)
     notes = Column(Text)
-
-

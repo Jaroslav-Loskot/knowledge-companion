@@ -1,14 +1,16 @@
-from uuid import uuid4, UUID
 from datetime import datetime
+from uuid import UUID, uuid4
+
 from sqlalchemy.orm import Session
+
 from models import Task
 from utils.bedrock_wrapper import call_claude, fetch_embedding
 
+
 def summarize_task(title: str) -> str:
-    system_prompt = (
-        "You are a task assistant helping summarize tasks."
-    )
+    system_prompt = "You are a task assistant helping summarize tasks."
     return call_claude(system_prompt, title)
+
 
 def add_task(
     db: Session,
@@ -16,7 +18,7 @@ def add_task(
     title: str,
     due_date: datetime,
     status: str,
-    assigned_to: str
+    assigned_to: str,
 ):
     task_id = uuid4()
     summary = summarize_task(title)
@@ -30,7 +32,7 @@ def add_task(
         status=status,
         assigned_to=assigned_to,
         summary=summary,
-        embedding=embedding
+        embedding=embedding,
     )
 
     db.add(task)

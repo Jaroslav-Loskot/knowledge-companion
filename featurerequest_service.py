@@ -1,9 +1,10 @@
-from uuid import uuid4, UUID
 from datetime import datetime
+from uuid import UUID, uuid4
+
 from sqlalchemy.orm import Session
+
 from models import FeatureRequest
 from utils.bedrock_wrapper import call_claude, fetch_embedding
-
 
 
 def summarize_feature_request(text: str) -> str:
@@ -25,7 +26,7 @@ def add_feature_request(
     priority: str,
     status: str,
     estimated_delivery: datetime,
-    internal_notes: str
+    internal_notes: str,
 ):
     # your implementation here
     request_id = uuid4()
@@ -46,7 +47,7 @@ def add_feature_request(
         created_at=created_at,
         updated_at=created_at,
         summary=summary,
-        embedding=embedding
+        embedding=embedding,
     )
 
     db.add(request)

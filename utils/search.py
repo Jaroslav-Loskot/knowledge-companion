@@ -1,7 +1,8 @@
-from sqlalchemy.orm import Query
-from sqlalchemy import or_
 from typing import List
+
 from pydantic import BaseModel
+from sqlalchemy import or_
+from sqlalchemy.orm import Query
 
 
 class SearchFilter(BaseModel):
