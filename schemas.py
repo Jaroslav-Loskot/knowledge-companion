@@ -5,6 +5,12 @@ from uuid import UUID
 from datetime import datetime
 
 # --- SCHEMAS ---
+
+class CustomerVectorSearchRequest(BaseModel):
+    query: str
+    top_k: int = 3
+
+
 class TaskCreate(BaseModel):
     customer_id: UUID
     title: str

@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from typing import List, Optional, Literal
 import logging
+from sqlalchemy.sql import text
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
@@ -36,7 +37,8 @@ from schemas import (
     AliasOperationRequest,
     CustomerUpdateRequest,
     NoteCreateRequest,
-    TaskCreate
+    TaskCreate,
+    CustomerVectorSearchRequest
 )
 
 
@@ -129,6 +131,51 @@ def create_customer(payload: CustomerCreate):
         logging.error("Customer creation failed", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Customer creation failed: {str(e)}")
 
+
+
+@app.post("/customers/search")
+def search_customers_by_vector(payload: CustomerVectorSearchRequest):
+    db = next(get_db())
+
+    try:
+        query_vector = fetch_embedding(payload.query)
+
+        # Perform vector similarity search on CustomerAlias table
+        sql = text(f"""
+            SELECT customer_id, alias, embedding <-> :query_vector AS distance
+            FROM customer_alias
+            WHERE embedding IS NOT NULL
+            ORDER BY embedding <-> :query_vector
+            LIMIT :top_k;
+        """)
+
+        rows = db.execute(sql, {
+            "query_vector": query_vector,
+            "top_k": payload.top_k
+        }).fetchall()
+
+        customer_ids = list({row.customer_id for row in rows})
+        aliases_by_customer = {}
+        for row in rows:
+            aliases_by_customer.setdefault(row.customer_id, []).append(row.alias)
+
+        if not customer_ids:
+            return []
+
+        # Fetch full customer records
+        customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
+
+        return [
+            {
+                "id": str(customer.id),
+                "name": customer.name,
+                "aliases": aliases_by_customer.get(customer.id, [])
+            }
+            for customer in customers
+        ]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
 
 
 
