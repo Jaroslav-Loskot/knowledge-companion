@@ -21,7 +21,7 @@ from models import (
     Contact
 )
 from utils.bedrock_wrapper import fetch_embedding
-from utils.search import apply_dynamic_filters, SearchFilter
+from utils.search import apply_dynamic_filters, SearchFiltegitr
 from contact_service import add_contact, search_contacts
 from note_service import add_note
 from featurerequest_service import add_feature_request
@@ -118,7 +118,8 @@ def create_customer(payload: CustomerCreate):
 
         # Add aliases (if any)
         for alias in payload.aliases:
-            db.add(CustomerAlias(customer_id=customer.id, alias=alias.alias))
+                db.add(CustomerAlias(id=uuid4(), customer_id=customer.id, alias=alias.alias))
+
 
         db.commit()
         return {"status": "customer created", "customer_id": str(customer.id)}
