@@ -1,22 +1,26 @@
-import os
-import json
-import requests
-import logging
-from dotenv import load_dotenv
-from fastapi import HTTPException
-from botocore.auth import SigV4Auth
-from botocore.awsrequest import AWSRequest
-from botocore.credentials import Credentials
 import boto3
+import json
+import os
+from fastapi import HTTPException
+from dotenv import load_dotenv
+import logging
 
-# Load env variables
-load_dotenv(override=True)
+load_dotenv()
 
-# Claude Bedrock config
-AWS_REGION = os.getenv("AWS_REGION", "eu-north-1")
-CLAUDE_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "eu.anthropic.claude-sonnet-4-20250514-v1:0")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
+
+MODEL_ID = os.getenv("BEDROCK_MODEL_ID")  # ✅ fix
+INFERENCE_ARN = os.getenv("BEDROCK_INFERENCE_CONFIG_ARN")  # ✅ fix
+
+bedrock_client = boto3.client(
+    service_name="bedrock-runtime",
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
 
 # --- Claude Generation via signed HTTP request ---
 def call_claude(system_prompt: str, user_input: str) -> str:
