@@ -26,15 +26,23 @@ bedrock_client = boto3.client(
 )
 
 def summarize_note(note_text: str) -> str:
+    """Summarizes meeting note using Claude Sonnet 4 via Amazon Bedrock."""
+
     prompt = (
         "You are a helpful assistant. Please summarize the following meeting note in 1–2 sentences:\n\n"
-        f"{note_text}\n"
+        f"{note_text}\n\nAssistant:"
     )
 
     body = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 300,
-        "messages": [{"role": "user", "content": prompt}]
+        "max_tokens": 500,
+        "temperature": 0.5,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
     }
 
     try:
@@ -44,10 +52,14 @@ def summarize_note(note_text: str) -> str:
             contentType="application/json",
             accept="application/json"
         )
+
         response_body = json.loads(response["body"].read())
         return response_body["content"][0]["text"].strip()
+
     except Exception as e:
         raise RuntimeError(f"Summarization failed: {str(e)}")
+    
+    
 
 def generate_embedding(text: str) -> list:
     payload = {
