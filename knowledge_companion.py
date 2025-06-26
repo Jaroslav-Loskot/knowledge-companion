@@ -134,45 +134,36 @@ def create_customer(payload: CustomerCreate):
 
 
 @app.post("/customers/search")
-def search_customers_by_vector(payload: CustomerVectorSearchRequest):
+def vector_search_customers(payload: CustomerVectorSearchRequest):
     db = next(get_db())
-
     try:
-        query_vector = fetch_embedding(payload.query)
+        # Generate embedding from the query text
+        embedding = fetch_embedding(payload.query)
+        if embedding is None:
+            raise HTTPException(status_code=400, detail="Failed to generate embedding from query.")
 
-        # Perform vector similarity search on CustomerAlias table
         sql = text("""
             SELECT customer_id, alias, embedding <-> :query_vector::vector AS distance
             FROM customer_alias
             WHERE embedding IS NOT NULL
             ORDER BY embedding <-> :query_vector::vector
-            LIMIT :top_k;
+            LIMIT :top_k
         """)
 
         rows = db.execute(sql, {
-            "query_vector": query_vector,
+            "query_vector": embedding,
             "top_k": payload.top_k
         }).fetchall()
 
-        customer_ids = list({row.customer_id for row in rows})
-        aliases_by_customer = {}
-        for row in rows:
-            aliases_by_customer.setdefault(row.customer_id, []).append(row.alias)
-
-        if not customer_ids:
-            return []
-
-        # Fetch full customer records
+        # Collect unique customer IDs and load full customers
+        customer_ids = list(set(str(row.customer_id) for row in rows))
         customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
 
-        return [
-            {
-                "id": str(customer.id),
-                "name": customer.name,
-                "aliases": aliases_by_customer.get(customer.id, [])
-            }
-            for customer in customers
-        ]
+        return [{
+            "id": str(customer.id),
+            "name": customer.name,
+            "aliases": [alias.alias for alias in customer.aliases]
+        } for customer in customers]
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
