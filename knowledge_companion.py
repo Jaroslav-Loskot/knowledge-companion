@@ -2,6 +2,7 @@ import os
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import List, Optional, Literal
+import logging
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
@@ -94,54 +95,37 @@ def create_task(payload: TaskCreate):
 
 
 @app.post("/customers")
-def create_customer(customer: CustomerCreate):
+def create_customer(payload: CustomerCreate):
     db = next(get_db())
-    customer_id = customer.id or uuid4()
-    db_customer = Customer(id=customer_id, **customer.dict(exclude={"id", "aliases"}))
-    db.add(db_customer)
-
-    aliases = customer.aliases or [CustomerAliasCreate(alias=customer.name)]
-
-    for alias in aliases:
-        embedding_value = alias.embedding or fetch_embedding(alias.alias)
-        db_alias = CustomerAlias(
-            customer_id=customer_id,
-            alias=alias.alias,
-            embedding=embedding_value
-        )
-        db.add(db_alias)
-
-    db.commit()
-    return {"status": "created", "customer_id": str(customer_id)}
-
-from fastapi import HTTPException
-import logging  # Optional, for logging errors
-
-@app.post("/customers")
-def create_customer(customer: CustomerCreate):
-    db = next(get_db())
-    customer_id = customer.id or uuid4()
     try:
-        db_customer = Customer(id=customer_id, **customer.dict(exclude={"id", "aliases"}))
-        db.add(db_customer)
+        # Try to create the customer using your service
+        customer = Customer(
+            id=payload.id or uuid4(),
+            name=payload.name,
+            industry=payload.industry,
+            size=payload.size,
+            region=payload.region,
+            status=payload.status,
+            created_at=payload.created_at or datetime.utcnow(),
+            updated_at=payload.updated_at or datetime.utcnow(),
+            jira_project_key=payload.jira_project_key,
+            salesforce_account_id=payload.salesforce_account_id,
+            mainpage_url=payload.mainpage_url,
+        )
 
-        aliases = customer.aliases or [CustomerAliasCreate(alias=customer.name)]
+        db.add(customer)
+        db.flush()  # ensure the customer is created and has an ID
 
-        for alias in aliases:
-            embedding_value = alias.embedding or fetch_embedding(alias.alias)
-            db_alias = CustomerAlias(
-                customer_id=customer_id,
-                alias=alias.alias,
-                embedding=embedding_value
-            )
-            db.add(db_alias)
+        # Add aliases (if any)
+        for alias in payload.aliases:
+            db.add(CustomerAlias(customer_id=customer.id, alias=alias.alias))
 
         db.commit()
-        return {"status": "created", "customer_id": str(customer_id)}
+        return {"status": "customer created", "customer_id": str(customer.id)}
 
     except Exception as e:
         db.rollback()
-        # This sends the actual error message back to the client
+        logging.error("Customer creation failed", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Customer creation failed: {str(e)}")
 
 
