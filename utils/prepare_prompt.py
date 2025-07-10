@@ -26,4 +26,9 @@ if __name__ == "__main__":
     parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 
     result = load_python_files(parent_dir)
-    print(result)
+
+    output_file = os.path.join(current_dir, "prompt.txt")
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(result)
+
+    print(f"✅ Output written to {output_file}")
