@@ -61,6 +61,7 @@ DB_NAME=knowledge
 `POST /notes` – create note with summarisation
 
 ### Contacts
+`POST /contacts` – create contact
 `POST /contacts/search` – filter contacts
 
 ### Feature requests

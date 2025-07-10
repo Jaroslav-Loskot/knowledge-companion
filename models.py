@@ -89,3 +89,4 @@ class Contact(Base):
     email = Column(Text)
     phone = Column(Text)
     notes = Column(Text)
+    embedding = Column(Vector(1024))
