@@ -10,10 +10,10 @@ from utils.bedrock_wrapper import call_claude, fetch_embedding
 
 def summarize_note(note_text: str) -> str:
     """
-    Summarizes meeting notes using Claude Sonnet 4.
+    Summarizes notes using Claude Sonnet 4.
     """
     system_prompt = (
-        "You are a helpful assistant that summarizes meeting notes into 1–2 sentences."
+        "You are a helpful assistant that summarizes notes into several sentances."
     )
     return call_claude(system_prompt, note_text)
 

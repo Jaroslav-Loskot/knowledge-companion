@@ -12,7 +12,7 @@ def summarize_feature_request(text: str) -> str:
     Summarizes a feature request description using Claude Sonnet.
     """
     system_prompt = (
-        "You are a helpful assistant summarizing feature requests into 1–2 sentences "
+        "You are a helpful assistant summarizing feature requests into several sentences "
         "to help developers and managers understand the main goal quickly."
     )
     return call_claude(system_prompt, text)
