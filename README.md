@@ -1,94 +1,165 @@
 # 🧠 Knowledge Companion
 
-Knowledge Companion is a FastAPI microservice that stores customer information and related knowledge for other applications. It generates embeddings for aliases, notes, feature requests and tasks using Amazon Bedrock models so the data can be semantically searched.
+A FastAPI-based microservice for managing customers, contacts, notes, tasks, and feature requests — built to support AI-driven workflows, vector-based search, and real-time summarization using AWS Bedrock (Claude Sonnet 4).
 
-## Features
+---
 
-- **Customer management** – create, update and delete customers with rich metadata
-- **Semantic aliases** – add, update or remove aliases that are embedded with Amazon Titan
-- **Vector search** – search for customers by text using pgvector similarity
-- **Notes** – store lengthy meeting notes which are summarised by Claude and embedded
-- **Feature requests** – record product feature requests and automatically summarise them
-- **Tasks** – create tasks linked to customers, summarised for easy reference
-- **Contact search** – filter stored contacts using dynamic field filters
-- **Schema endpoint** – expose database schema for quick introspection
+## 📦 Features
 
-## Tech Stack
+* **CRUD for Customers, Contacts, Tasks, Notes, Feature Requests**
+* **Claude Sonnet 4 Summarization** for Notes & Feature Requests
+* **Vector Search** with pgvector for customer aliases
+* **Clean FastAPI endpoints** with modular services
+* **Embedding Support** for natural language understanding
+* **Prompt capture utility** for LLM context packaging
 
-- Python 3.11
-- FastAPI
-- SQLAlchemy with PostgreSQL and `pgvector`
-- Amazon Bedrock (Claude Sonnet & Titan Embed Text)
+---
 
-## Environment variables
+## ✨ Quick Start
 
-Create a `.env` file in the project root:
+### 1. Clone and set up environment
 
-```env
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_REGION=your_region
-BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
-BEDROCK_INFERENCE_CONFIG_ARN=your_inference_arn
+```bash
+git clone https://github.com/YOUR_USERNAME/knowledge-companion.git
+cd knowledge-companion
+python -m venv .venv
+source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
 
+### 2. Environment Variables
+
+Create a `.env` file:
+
+```ini
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=knowledge
+DB_NAME=knowledge_companion
+
+AWS_REGION=eu-north-1
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_SESSION_TOKEN=optional
+BEDROCK_INFERENCE_CONFIG_ARN=arn:aws:bedrock:...
 ```
 
-## API
-
-### Health
-`GET /health`
-
-### Customers
-`POST /customers` – create customer
-
-`POST /customers/search` – vector search
-
-`PATCH /customers/{customer_id}` – update name
-
-`DELETE /customers/{customer_id}` – delete customer
-
-`GET /customers` – search by id or name
-
-### Aliases
-`POST /aliases` – add, delete or update aliases
-
-### Notes
-`POST /notes` – create note with summarisation
-
-### Contacts
-`POST /contacts` – create contact
-`POST /contacts/search` – filter contacts
-
-### Feature requests
-`POST /feature-requests` – create request
-
-### Tasks
-`POST /tasks` – create task
-
-### Schema
-`GET /schema` – list all tables and columns
-
-## Running
-
-Install the dependencies and start the server:
+### 3. Start the server
 
 ```bash
-pip install -r requirements.txt
-uvicorn knowledge_companion:app --reload
+uvicorn main:app --reload
 ```
 
-A Dockerfile and `docker-compose.yml` are provided for container based deployments.
+---
 
-## Development notes
+## 🧪 Example Endpoints
 
-The core endpoints live in `knowledge_companion.py` with helper services in separate `*_service.py` files. Embedding and summarisation helpers are located in `utils/bedrock_wrapper.py`.
+### Health Check
 
-## License
+```http
+GET /health
+```
 
-MIT
+### Create Customer
 
+```http
+POST /customers
+```
+
+### Add Contact
+
+```http
+POST /contacts
+{
+  "operation": "add",
+  "payload": {
+    "customer_id": "UUID-HERE",
+    "name": "John Doe",
+    "role": "Engineer",
+    "email": "john@example.com",
+    "phone": "123-456",
+    "notes": "Important contact"
+  }
+}
+```
+
+### Create Note
+
+```http
+POST /notes
+{
+  "customer_id": "UUID-HERE",
+  "author": "Alice",
+  "category": "Meeting",
+  "full_note": "We discussed Q3 roadmap.",
+  "tags": ["meeting", "q3"],
+  "source": "slack"
+}
+```
+
+---
+
+## 🧪 Test Claude Summarization
+
+Test Claude Sonnet 4 directly:
+
+```bash
+python test_claude_summarization.py
+```
+
+---
+
+## 📁 Code Organization
+
+| Path                       | Purpose                              |
+| -------------------------- | ------------------------------------ |
+| `main.py`                  | FastAPI routes                       |
+| `models.py`                | SQLAlchemy models                    |
+| `schemas.py`               | Pydantic request/response models     |
+| `services/`                | Business logic split by domain       |
+| `utils/bedrock_wrapper.py` | Claude/Bedrock helper functions      |
+| `prompt.txt`               | Generated context from project files |
+
+---
+
+## ✨ Prompt Capture Utility
+
+To package code context into `prompt.txt`:
+
+```bash
+python generate_prompt.py
+```
+
+This scans `.py` files (excluding `.venv`, `.git`, etc.) and writes clean output to `prompt.txt` — ideal for LLM context.
+
+---
+
+## 🧐 Vector Search with pgvector
+
+Used for searching customer aliases via embedding similarity:
+
+```http
+POST /customers/search
+{
+  "query": "Acme Ltd",
+  "top_k": 5
+}
+```
+
+---
+
+## 🛠️ Tech Stack
+
+* **FastAPI**
+* **SQLAlchemy**
+* **PostgreSQL** + `pgvector`
+* **Claude via AWS Bedrock**
+* **Uvicorn**
+* **dotenv**, **Pydantic**
+
+---
+
+## 📝 License
+
+MIT – free to use, modify, or fork.
