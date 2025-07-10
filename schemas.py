@@ -1,10 +1,16 @@
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict
 from uuid import UUID
 
 from pydantic import BaseModel
 
 # --- SCHEMAS ---
+
+
+
+class ContactOperationRequest(BaseModel):
+    operation: Literal["add", "update", "delete"]
+    payload: dict  # raw contact data for the operation
 
 
 class CustomerVectorSearchRequest(BaseModel):
@@ -38,15 +44,23 @@ class ContactSearchRequest(BaseModel):
     customer_id: Optional[UUID] = None
     filters: Optional[List[ContactSearchFilter]] = []
 
-
-class FeatureRequestCreate(BaseModel):
+class FeatureRequestFromRaw(BaseModel):
     customer_id: UUID
-    request_title: str
-    description: str
-    priority: str
-    status: str
-    estimated_delivery: datetime
-    internal_notes: str
+    raw_input: str
+    priority: Optional[str] = "unspecified"
+    status: Optional[str] = "new"
+
+
+class FeatureRequestUpdatePayload(BaseModel):
+    request_id: UUID
+    raw_input: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+
+
+class FeatureRequestOperationRequest(BaseModel):
+    operation: Literal["add", "update", "delete"]
+    payload: Dict
 
 
 class CustomerAliasCreate(BaseModel):

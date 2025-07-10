@@ -48,7 +48,7 @@ def add_contact(db: Session, payload: ContactPayload):
         email=payload.email,
         phone=payload.phone,
         notes=payload.notes,
-        embedding=name_embedding,
+        name_embedding=name_embedding,  # ✅ only this
     )
 
     db.add(contact)
@@ -56,18 +56,46 @@ def add_contact(db: Session, payload: ContactPayload):
     return {"status": "contact created", "contact_id": str(contact_id)}
 
 
+
 def update_contact(db: Session, payload: ContactUpdatePayload):
     contact = db.query(Contact).filter(Contact.id == payload.contact_id).first()
     if not contact:
         return {"error": "Contact not found", "contact_id": str(payload.contact_id)}
 
-    # Update only provided fields
-    for field, value in payload.dict(exclude_unset=True).items():
-        if field != "contact_id":
-            setattr(contact, field, value)
+    updated = False
+    name_changed = False
 
-    db.commit()
+    for field, value in payload.dict(exclude_unset=True).items():
+        if field != "contact_id" and getattr(contact, field) != value:
+            setattr(contact, field, value)
+            updated = True
+            if field == "name":
+                name_changed = True
+
+    if name_changed:
+        try:
+            contact.name_embedding = fetch_embedding(contact.name)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to regenerate name embedding: {str(e)}",
+            )
+
+    if updated:
+        db.commit()
+
     return {"status": "contact updated", "contact_id": str(contact.id)}
+
+
+def delete_contact(db: Session, contact_id: UUID):
+    contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    if not contact:
+        return {"error": "Contact not found", "contact_id": str(contact_id)}
+
+    db.delete(contact)
+    db.commit()
+    return {"status": "contact deleted", "contact_id": str(contact_id)}
+
 
 
 def search_contacts(query: Query, payload: ContactSearchPayload) -> Query:

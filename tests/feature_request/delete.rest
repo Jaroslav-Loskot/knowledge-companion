@@ -1,0 +1,9 @@
+POST http://localhost:8001/feature-requests
+Content-Type: application/json
+
+{
+  "operation": "delete",
+  "payload": {
+    "request_id": "1ae357d0-2b95-4a9a-aed8-cd8103d28ae7"
+  }
+}

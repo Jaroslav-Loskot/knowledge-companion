@@ -50,7 +50,7 @@ class CustomerAlias(Base):
 
 
 class CustomNote(Base):
-    __tablename__ = "customnotes"
+    __tablename__ = "custom_notes"
     id = Column(UUID(as_uuid=True), primary_key=True)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
     author = Column(Text)
@@ -64,19 +64,15 @@ class CustomNote(Base):
 
 
 class FeatureRequest(Base):
-    __tablename__ = "featurerequest"
+    __tablename__ = "feature_request"
     id = Column(UUID(as_uuid=True), primary_key=True)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
     request_title = Column(Text)
-    description = Column(Text)  # raw input
+    summary = Column(Text)
     priority = Column(Text)
     status = Column(Text)
-    estimated_delivery = Column(TIMESTAMP)
-    internal_notes = Column(Text)
     created_at = Column(TIMESTAMP)
-    updated_at = Column(TIMESTAMP)
-
-    summary = Column(Text)
+    raw_input = Column(Text)              # ✅ renamed from row_input
     embedding = Column(Vector(1024))
 
 
@@ -89,4 +85,4 @@ class Contact(Base):
     email = Column(Text)
     phone = Column(Text)
     notes = Column(Text)
-    embedding = Column(Vector(1024))
+    name_embedding = Column(Vector(1024))   

@@ -1,0 +1,12 @@
+POST http://localhost:8001/feature-requests/raw
+Content-Type: application/json
+
+{
+  "operation": "add",
+  "payload": {
+    "customer_id": "56b86ead-004c-4973-bd13-309bae2a2da1",
+    "raw_input": "We would like to integrate Slack notifications with the incident management dashboard to allow real-time team collaboration when a new threat is detected.",
+    "priority": "high",
+    "status": "open"
+  }
+}
