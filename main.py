@@ -5,30 +5,23 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
-from sqlalchemy import MetaData, create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import text
+from fastapi import Depends, FastAPI, HTTPException, Query
+from sqlalchemy import MetaData, create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
 
 from models import Base, Contact, Customer, CustomerAlias
 from utils.bedrock_wrapper import fetch_embedding
-
-# --- Services ---
-from contact_service import (
-    ContactUpdatePayload,
+from services.contact_service import (
+    add_contact,
     update_contact,
     delete_contact,
-    ContactPayload,
-    add_contact,
     search_contacts,
+    ContactPayload,
+    ContactUpdatePayload,
 )
-from featurerequest_service import (
-    handle_feature_request_operation,
-)
-from note_service import add_note
-from task_service import add_task
-
-# --- Schemas ---
+from services.featurerequest_service import handle_feature_request_operation
+from services.note_service import add_note
+from services.task_service import add_task
 from schemas import (
     AliasOperationRequest,
     ContactSearchRequest,
@@ -44,7 +37,6 @@ from schemas import (
 # --- Load environment ---
 load_dotenv(override=True)
 
-# --- DB Setup ---
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
@@ -58,10 +50,9 @@ Base.metadata.create_all(bind=engine)
 metadata = MetaData()
 metadata.reflect(bind=engine)
 
-# --- FastAPI App ---
 app = FastAPI(
     title="Knowledge Companion Service",
-    description="A microservice for managing customer identities, aliases, and embeddings, supporting AI agents and RAG-based systems in an integrated Information Hub.",
+    description="Microservice for managing customer identities and embeddings, supporting AI agents and RAG systems.",
     version="1.0.0",
 )
 
@@ -75,13 +66,12 @@ def get_db():
 
 
 @app.get("/health")
-def health():
+def health_check():
     return {"status": "ok"}
 
 
 @app.post("/tasks")
-def create_task(payload: TaskCreate):
-    db = next(get_db())
+def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
     try:
         return add_task(
             db=db,
@@ -96,71 +86,52 @@ def create_task(payload: TaskCreate):
 
 
 @app.post("/contacts")
-def handle_contact_operation(payload: ContactOperationRequest):
-    db = next(get_db())
+def handle_contact_operation(payload: ContactOperationRequest, db: Session = Depends(get_db)):
     try:
         if payload.operation == "add":
-            contact_payload = ContactPayload(**payload.payload)
-            return add_contact(db=db, payload=contact_payload)
-
+            return add_contact(db, ContactPayload(**payload.payload))
         elif payload.operation == "update":
-            update_payload = ContactUpdatePayload(**payload.payload)
-            return update_contact(db=db, payload=update_payload)
-
+            return update_contact(db, ContactUpdatePayload(**payload.payload))
         elif payload.operation == "delete":
             contact_id = UUID(payload.payload.get("contact_id"))
-            return delete_contact(db=db, contact_id=contact_id)
-
+            return delete_contact(db, contact_id)
         else:
             raise HTTPException(status_code=400, detail="Invalid operation type")
-
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Contact {payload.operation} failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Contact {payload.operation} failed: {str(e)}")
 
 
 @app.post("/contacts/search")
-def search_contacts_api(payload: ContactSearchRequest):
-    db = next(get_db())
+def search_contacts_api(payload: ContactSearchRequest, db: Session = Depends(get_db)):
     query = db.query(Contact)
-
     if payload.customer_id:
         query = query.filter(Contact.customer_id == payload.customer_id)
-
-    query = search_contacts(query, payload.filters or [])
-
+    query = search_contacts(query, payload)
     results = query.all()
-
     return [
         {
-            "id": str(contact.id),
-            "customer_id": str(contact.customer_id),
-            "name": contact.name,
-            "role": contact.role,
-            "email": contact.email,
-            "phone": contact.phone,
-            "notes": contact.notes,
+            "id": str(c.id),
+            "customer_id": str(c.customer_id),
+            "name": c.name,
+            "role": c.role,
+            "email": c.email,
+            "phone": c.phone,
+            "notes": c.notes,
         }
-        for contact in results
+        for c in results
     ]
 
 
 @app.post("/feature-requests")
-def handle_feature_request_op(payload: FeatureRequestOperationRequest):
-    db = next(get_db())
+def feature_request_op(payload: FeatureRequestOperationRequest, db: Session = Depends(get_db)):
     try:
         return handle_feature_request_operation(db, payload)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Feature request operation failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Feature request operation failed: {str(e)}")
 
 
 @app.post("/customers")
-def create_customer(payload: CustomerCreate):
-    db = next(get_db())
+def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
     try:
         customer = Customer(
             id=payload.id or uuid4(),
@@ -178,35 +149,25 @@ def create_customer(payload: CustomerCreate):
         db.add(customer)
         db.flush()
 
-        alias_texts = [payload.name]
-        if payload.aliases:
-            alias_texts.extend([a.alias for a in payload.aliases])
-
+        alias_texts = [payload.name] + [a.alias for a in (payload.aliases or [])]
         for alias_text in set(alias_texts):
-            embedding = fetch_embedding(alias_text)
-            db.add(
-                CustomerAlias(
-                    id=uuid4(),
-                    customer_id=customer.id,
-                    alias=alias_text,
-                    embedding=embedding,
-                )
-            )
+            db.add(CustomerAlias(
+                id=uuid4(),
+                customer_id=customer.id,
+                alias=alias_text,
+                embedding=fetch_embedding(alias_text),
+            ))
 
         db.commit()
         return {"status": "customer created", "customer_id": str(customer.id)}
-
     except Exception as e:
         db.rollback()
         logging.error("Customer creation failed", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Customer creation failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Customer creation failed: {str(e)}")
 
 
 @app.patch("/customers/{customer_id}")
-def update_customer(customer_id: UUID, update: CustomerUpdateRequest):
-    db = next(get_db())
+def update_customer(customer_id: UUID, update: CustomerUpdateRequest, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -219,30 +180,25 @@ def update_customer(customer_id: UUID, update: CustomerUpdateRequest):
 
 
 @app.delete("/customers/{customer_id}")
-def delete_customer(customer_id: UUID):
-    db = next(get_db())
+def delete_customer(customer_id: UUID, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
-
     db.delete(customer)
     db.commit()
     return {"status": "deleted"}
 
 
 @app.get("/customers")
-def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(None)):
-    db = next(get_db())
+def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(None), db: Session = Depends(get_db)):
     query = db.query(Customer)
     if id:
         query = query.filter(Customer.id == id)
     if name:
         query = query.filter(Customer.name.ilike(f"%{name}%"))
     customers = query.all()
-
     if not customers:
         raise HTTPException(status_code=404, detail="Customer not found")
-
     return [
         {"id": str(c.id), "name": c.name, "aliases": [a.alias for a in c.aliases]}
         for c in customers
@@ -250,12 +206,11 @@ def get_customer(id: Optional[UUID] = Query(None), name: Optional[str] = Query(N
 
 
 @app.post("/customers/search")
-def vector_search_customers(payload: CustomerVectorSearchRequest):
-    db = next(get_db())
+def vector_search_customers(payload: CustomerVectorSearchRequest, db: Session = Depends(get_db)):
     try:
         embedding = fetch_embedding(payload.query)
         if not embedding:
-            raise HTTPException(status_code=400, detail="Embedding could not be generated.")
+            raise HTTPException(status_code=400, detail="Embedding generation failed.")
 
         sql = text("""
             SELECT customer_id, alias, embedding <-> CAST(:query_vector AS vector) AS distance
@@ -266,22 +221,19 @@ def vector_search_customers(payload: CustomerVectorSearchRequest):
         """)
 
         results = db.execute(sql, {"query_vector": embedding, "top_k": payload.top_k}).fetchall()
-
-        customer_ids = list(set(str(row.customer_id) for row in results))
+        customer_ids = list({str(row.customer_id) for row in results})
         customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
 
         return [
             {"id": str(c.id), "name": c.name, "aliases": [a.alias for a in c.aliases]}
             for c in customers
         ]
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Customer search failed: {str(e)}")
 
 
 @app.post("/aliases")
-def alias_operation(payload: AliasOperationRequest):
-    db = next(get_db())
+def alias_operation(payload: AliasOperationRequest, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == payload.customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -289,15 +241,16 @@ def alias_operation(payload: AliasOperationRequest):
     try:
         if payload.operation == "add":
             for alias_text in payload.aliases:
-                embedding = fetch_embedding(alias_text)
-                db.add(CustomerAlias(customer_id=payload.customer_id, alias=alias_text, embedding=embedding))
-
+                db.add(CustomerAlias(
+                    customer_id=payload.customer_id,
+                    alias=alias_text,
+                    embedding=fetch_embedding(alias_text)
+                ))
         elif payload.operation == "delete":
             db.query(CustomerAlias).filter(
                 CustomerAlias.customer_id == payload.customer_id,
                 CustomerAlias.alias.in_(payload.aliases),
             ).delete(synchronize_session=False)
-
         elif payload.operation == "update":
             for alias_text in payload.aliases:
                 db_alias = db.query(CustomerAlias).filter(
@@ -306,21 +259,18 @@ def alias_operation(payload: AliasOperationRequest):
                 ).first()
                 if db_alias:
                     db_alias.embedding = fetch_embedding(alias_text)
-
         db.commit()
         return {
             "status": f"aliases {payload.operation}d",
             "customer_id": str(payload.customer_id),
             "aliases": payload.aliases,
         }
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Alias operation failed: {str(e)}")
 
 
 @app.post("/notes")
-def create_note(payload: NoteCreateRequest):
-    db = next(get_db())
+def create_note(payload: NoteCreateRequest, db: Session = Depends(get_db)):
     try:
         return add_note(
             db=db,
@@ -338,9 +288,8 @@ def create_note(payload: NoteCreateRequest):
 
 @app.get("/schema")
 def get_schema():
-    schema_info = []
-    for table_name, table in metadata.tables.items():
-        schema_info.append(
-            {"table": table_name, "columns": [col.name for col in table.columns]}
-        )
+    schema_info = [
+        {"table": table_name, "columns": [col.name for col in table.columns]}
+        for table_name, table in metadata.tables.items()
+    ]
     return {"schema": schema_info}

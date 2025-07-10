@@ -1,0 +1,12 @@
+POST http://localhost:8001/notes
+Content-Type: application/json
+
+{
+  "customer_id": "56b86ead-004c-4973-bd13-309bae2a2da1",
+  "author": "Jane Doe",
+  "category": "Meeting Summary",
+  "full_note": "We discussed onboarding progress and customer integration timeline.",
+  "tags": ["onboarding", "meeting", "summary"],
+  "source": "email",
+  "timestamp": "2025-07-10T15:00:00Z"
+}

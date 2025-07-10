@@ -21,4 +21,4 @@ COPY . .
 EXPOSE 8000
 
 # Default command to run the FastAPI app with uvicorn
-CMD ["uvicorn", "knowledge_companion:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
