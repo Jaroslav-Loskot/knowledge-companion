@@ -10,7 +10,7 @@ from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
-from contact_service import add_contact, search_contacts
+from contact_service import add_contact, search_contacts, ContactPayload
 from featurerequest_service import add_feature_request
 from models import Base, Contact, Customer, CustomerAlias
 from note_service import add_note
@@ -85,6 +85,16 @@ def create_task(payload: TaskCreate):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Task creation failed: {str(e)}")
+
+
+@app.post("/contacts")
+def create_contact(payload: ContactCreate):
+    db = next(get_db())
+    try:
+        result = add_contact(db=db, payload=ContactPayload(**payload.dict()))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Contact creation failed: {str(e)}")
 
 
 @app.post("/customers")

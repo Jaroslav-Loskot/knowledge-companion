@@ -6,6 +6,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Query, Session
 
 from models import Contact
+from utils.bedrock_wrapper import fetch_embedding
 from utils.search import SearchFilter, apply_dynamic_filters
 
 
@@ -37,6 +38,8 @@ class ContactSearchPayload(BaseModel):
 def add_contact(db: Session, payload: ContactPayload):
     contact_id = uuid4()
 
+    name_embedding = fetch_embedding(payload.name)
+
     contact = Contact(
         id=contact_id,
         customer_id=payload.customer_id,
@@ -45,6 +48,7 @@ def add_contact(db: Session, payload: ContactPayload):
         email=payload.email,
         phone=payload.phone,
         notes=payload.notes,
+        embedding=name_embedding,
     )
 
     db.add(contact)
