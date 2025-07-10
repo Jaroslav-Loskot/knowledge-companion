@@ -1,0 +1,12 @@
+### Create contact (example - you'll need working `add_contact`)
+POST http://localhost:8001/contacts
+Content-Type: application/json
+
+{
+  "customer_id": "56b86ead-004c-4973-bd13-309bae2a2da1",
+  "name": "Jane Smith",
+  "role": "CTO",
+  "email": "jane.smith@testcorp.com",
+  "phone": "+123456789",
+  "notes": "Key decision maker"
+}

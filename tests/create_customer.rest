@@ -1,0 +1,18 @@
+### Create a customer
+POST http://localhost:8001/customers
+Content-Type: application/json
+
+{
+  "name": "TestCorp",
+  "industry": "Tech",
+  "size": "50-100",
+  "region": "Europe",
+  "status": "active",
+  "jira_project_key": "TST",
+  "salesforce_account_id": "SF-001",
+  "mainpage_url": "https://testcorp.com",
+  "aliases": [
+    { "alias": "TC" },
+    { "alias": "Test Corporation" }
+  ]
+}

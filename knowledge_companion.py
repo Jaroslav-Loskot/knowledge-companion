@@ -30,7 +30,7 @@ from task_service import add_task
 from utils.bedrock_wrapper import fetch_embedding
 
 # Load AWS credentials from .env
-load_dotenv()
+load_dotenv(override=True)
 
 # --- DB SETUP ---
 DB_USER = os.getenv("DB_USER")

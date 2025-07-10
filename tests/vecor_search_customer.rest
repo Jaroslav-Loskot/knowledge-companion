@@ -1,0 +1,8 @@
+### Vector search customer
+POST http://localhost:8001/customers/search
+Content-Type: application/json
+
+{
+  "query": "TestCorp",
+  "top_k": 3
+}

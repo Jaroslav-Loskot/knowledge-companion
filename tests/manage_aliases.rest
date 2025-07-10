@@ -1,0 +1,9 @@
+### Manage aliases (add)
+POST http://localhost:8001/aliases
+Content-Type: application/json
+
+{
+  "customer_id": "56b86ead-004c-4973-bd13-309bae2a2da1",
+  "operation": "add",
+  "aliases": ["Test Corp Europe", "TCorp"]
+}
