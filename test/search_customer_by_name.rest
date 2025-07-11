@@ -1,2 +1,0 @@
-### Search customer by name
-GET http://localhost:8001/customers?name=Test

@@ -31,6 +31,7 @@ from schemas import (
     CustomerVectorSearchRequest,
     FeatureRequestOperationRequest,
     NoteCreateRequest,
+    NoteSearchRequest,
     TaskCreate,
 )
 
@@ -284,6 +285,72 @@ def create_note(payload: NoteCreateRequest, db: Session = Depends(get_db)):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Note creation failed: {str(e)}")
+
+
+@app.post("/notes/search")
+def search_notes(payload: NoteSearchRequest, db: Session = Depends(get_db)):
+    try:
+        embedding = fetch_embedding(payload.query)
+        if not embedding:
+            raise HTTPException(status_code=400, detail="Failed to generate embedding.")
+
+        effective_to_date = payload.to_date or datetime.utcnow()
+
+        sql = """
+            SELECT id, summary, timestamp, embedding <-> CAST(:query_vector AS vector) AS distance
+            FROM custom_notes
+            WHERE embedding IS NOT NULL
+        """
+        params = {
+            "query_vector": embedding,
+            "top_k": payload.top_k,
+            "to_date": effective_to_date
+        }
+
+        if payload.customer_id:
+            sql += " AND customer_id = :customer_id"
+            params["customer_id"] = payload.customer_id
+
+        if payload.from_date:
+            sql += " AND timestamp >= :from_date"
+            params["from_date"] = payload.from_date
+
+        sql += " AND timestamp <= :to_date"
+
+        if payload.category:
+            sql += " AND LOWER(category) = LOWER(:category)"
+            params["category"] = payload.category
+
+        if payload.source:
+            sql += " AND LOWER(source) = LOWER(:source)"
+            params["source"] = payload.source
+
+        if payload.tags:
+            # Make case-insensitive comparison for each tag (workaround using ILIKE with ANY)
+            sql += " AND EXISTS (SELECT 1 FROM unnest(tags) t WHERE " + " OR ".join(
+                [f"LOWER(t) = LOWER(:tag{i})" for i in range(len(payload.tags))]
+            ) + ")"
+            for i, tag in enumerate(payload.tags):
+                params[f"tag{i}"] = tag
+
+        sql += " ORDER BY embedding <-> CAST(:query_vector AS vector) LIMIT :top_k"
+
+        results = db.execute(text(sql), params).fetchall()
+
+        return [
+            {
+                "note_id": str(r.id),
+                "summary": r.summary,
+                "timestamp": r.timestamp.isoformat() if r.timestamp else None
+            }
+            for r in results
+        ]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Note search failed: {str(e)}")
+
+
+
 
 
 @app.get("/schema")

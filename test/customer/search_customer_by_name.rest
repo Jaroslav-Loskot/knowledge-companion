@@ -1,0 +1,7 @@
+### Search customer by name
+POST http://localhost:8001/customers/search
+
+{
+  "query": "ACME Corp",
+  "top_k": 3
+}

@@ -1,0 +1,10 @@
+POST http://localhost:8001/notes/search
+Content-Type: application/json
+
+{
+  "query": "onboarding steps",
+  "customer_id": "56b86ead-004c-4973-bd13-309bae2a2da1",
+  "category" : "Meeting summary",
+  "source" : "email",
+  "top_k": 3
+}

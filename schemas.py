@@ -111,6 +111,18 @@ class NoteCreateRequest(BaseModel):
     source: str
     timestamp: Optional[datetime] = None
 
+class NoteSearchRequest(BaseModel):
+    customer_id: Optional[UUID] = None
+    query: str
+    top_k: int = 5
+    from_date: Optional[datetime] = None
+    to_date: Optional[datetime] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    source: Optional[str] = None
+
+
+
 
 # --- TASK SCHEMAS ---
 class TaskCreate(BaseModel):
