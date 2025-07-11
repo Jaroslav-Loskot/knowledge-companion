@@ -15,7 +15,6 @@ from schemas import (
 )
 
 def summarize_feature_request(text: str) -> dict:
-    """Use Claude to summarize a raw feature request into title and summary."""
     system_prompt = """
     You are a helpful assistant summarizing software feature requests.
 
@@ -42,14 +41,26 @@ def summarize_feature_request(text: str) -> dict:
 
 def add_feature_request_from_raw(
     db: Session,
-    customer_id: UUID,
+    customer_ids: list[UUID],
     raw_input: str,
     priority: str = "unspecified",
     status: str = "new",
 ) -> OperationStatus:
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail=f"Customer {customer_id} not found.")
+    # Fetch all customers found in the DB
+    customers = db.query(Customer).filter(Customer.id.in_(customer_ids)).all()
+
+    # Determine which ones are missing
+    found_ids = {c.id for c in customers}
+    missing_ids = [str(cid) for cid in customer_ids if cid not in found_ids]
+
+    if missing_ids:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Some customer IDs were not found.",
+                "missing_customer_ids": missing_ids
+            }
+        )
 
     request_id = uuid4()
     created_at = datetime.utcnow()
@@ -57,7 +68,6 @@ def add_feature_request_from_raw(
 
     request = FeatureRequest(
         id=request_id,
-        customer_id=customer_id,
         request_title=summary_data["title"],
         summary=summary_data["summary"],
         priority=priority,
@@ -65,6 +75,7 @@ def add_feature_request_from_raw(
         created_at=created_at,
         raw_input=raw_input,
         embedding=fetch_embedding(summary_data["summary"]),
+        customers=customers,
     )
 
     try:
@@ -74,6 +85,7 @@ def add_feature_request_from_raw(
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
 
 
 def update_feature_request(db: Session, update: FeatureRequestUpdatePayload) -> OperationStatus:
@@ -93,8 +105,25 @@ def update_feature_request(db: Session, update: FeatureRequestUpdatePayload) -> 
     if update.status:
         request.status = update.status
 
+    if update.customer_ids is not None:
+        customers = db.query(Customer).filter(Customer.id.in_(update.customer_ids)).all()
+        found_ids = {c.id for c in customers}
+        missing_ids = [str(cid) for cid in update.customer_ids if cid not in found_ids]
+
+        if missing_ids:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": "Some customer IDs were not found.",
+                    "missing_customer_ids": missing_ids
+                }
+            )
+
+        request.customers = customers  # full overwrite
+
     db.commit()
     return OperationStatus(status="updated", entity="feature_request", id=str(request.id))
+
 
 
 def delete_feature_request(db: Session, request_id: UUID) -> OperationStatus:
@@ -112,7 +141,7 @@ def handle_feature_request_operation(db: Session, payload: FeatureRequestOperati
         raw = FeatureRequestFromRaw(**payload.payload)
         return add_feature_request_from_raw(
             db=db,
-            customer_id=raw.customer_id,
+            customer_ids=raw.customer_ids,  # now list
             raw_input=raw.raw_input,
             priority=raw.priority,
             status=raw.status,

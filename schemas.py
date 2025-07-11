@@ -83,10 +83,11 @@ class AliasOperationRequest(BaseModel):
 
 # --- FEATURE REQUEST SCHEMAS ---
 class FeatureRequestFromRaw(BaseModel):
-    customer_id: UUID
+    customer_ids: List[UUID]
     raw_input: str
     priority: Optional[str] = "unspecified"
     status: Optional[str] = "new"
+
 
 
 class FeatureRequestUpdatePayload(BaseModel):
@@ -94,6 +95,8 @@ class FeatureRequestUpdatePayload(BaseModel):
     raw_input: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
+    customer_ids: Optional[List[UUID]] = None  # ✅ NEW
+
 
 
 class FeatureRequestOperationRequest(BaseModel):

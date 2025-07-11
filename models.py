@@ -1,7 +1,7 @@
 import uuid
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import TIMESTAMP, Column, ForeignKey, Text
+from sqlalchemy import TIMESTAMP, Column, ForeignKey, Table, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -66,14 +66,15 @@ class CustomNote(Base):
 class FeatureRequest(Base):
     __tablename__ = "feature_request"
     id = Column(UUID(as_uuid=True), primary_key=True)
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("customer.id"))
     request_title = Column(Text)
     summary = Column(Text)
     priority = Column(Text)
     status = Column(Text)
     created_at = Column(TIMESTAMP)
-    raw_input = Column(Text)              # ✅ renamed from row_input
+    raw_input = Column(Text)
     embedding = Column(Vector(1024))
+    customers = relationship("Customer", secondary="feature_request_customer", backref="feature_requests")
+
 
 
 class Contact(Base):
@@ -86,3 +87,12 @@ class Contact(Base):
     phone = Column(Text)
     notes = Column(Text)
     name_embedding = Column(Vector(1024))   
+
+
+# Association table between feature_request and customer
+feature_request_customer = Table(
+    "feature_request_customer",
+    Base.metadata,
+    Column("feature_request_id", UUID(as_uuid=True), ForeignKey("feature_request.id")),
+    Column("customer_id", UUID(as_uuid=True), ForeignKey("customer.id")),
+)
