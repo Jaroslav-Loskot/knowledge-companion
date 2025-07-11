@@ -16,17 +16,18 @@ from schemas import (
 
 def summarize_feature_request(text: str) -> dict:
     system_prompt = """
-    You are a helpful assistant summarizing software feature requests.
+        You are a helpful assistant summarizing software feature requests.
 
-    Based on the provided input:
-    1. Generate a clear and concise TITLE — it must be 80 characters or fewer.
-    2. Then generate a longer SUMMARY explaining the feature in more detail (1–3 paragraphs).
+        Based on the provided input:
+        1. Generate a clear and concise TITLE — it must be 80 characters or fewer.
+        2. Then generate a longer SUMMARY explaining the feature in more detail (1–3 paragraphs).
 
-    Return only the JSON object in this format:
-    {
-      "title": "<title here>",
-      "summary": "<summary here>"
-    }
+        Return only the JSON object in this format — do NOT wrap it in markdown or add commentary:
+
+        {
+        "title": "<title here>",
+        "summary": "<summary here>"
+        }
     """
     raw_response = call_claude(system_prompt, text)
 
